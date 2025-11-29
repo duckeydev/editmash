@@ -8,6 +8,9 @@ import {
 } from "@/components/ui/resizable";
 import MediaBrowser from "./MediaBrowser";
 import EffectsBrowser from "./EffectsBrowser";
+import VideoPreview from "./VideoPreview";
+import Inspector from "./Inspector";
+import Timeline from "./Timeline";
 
 interface MainLayoutProps {
   showMedia: boolean;
@@ -45,9 +48,27 @@ export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) 
         )}
 
         <ResizablePanel defaultSize={noneVisible ? 100 : 60} minSize={40}>
-          <div className="h-full bg-[#1a1a1a] flex items-center justify-center">
-            <p className="text-zinc-600 text-lg">Workspace area</p>
-          </div>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={60} minSize={30}>
+              <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel defaultSize={70} minSize={40}>
+                  <VideoPreview />
+                </ResizablePanel>
+
+                <ResizableHandle />
+
+                <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+                  <Inspector />
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+
+            <ResizableHandle />
+
+            <ResizablePanel defaultSize={40} minSize={20}>
+              <Timeline />
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
