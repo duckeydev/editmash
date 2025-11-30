@@ -11,6 +11,7 @@ import EffectsBrowser from "./EffectsBrowser";
 import VideoPreview from "./VideoPreview";
 import Inspector from "./Inspector";
 import Timeline from "./Timeline";
+import { Clip } from "../types/timeline";
 
 interface MainLayoutProps {
   showMedia: boolean;
@@ -20,6 +21,7 @@ interface MainLayoutProps {
 export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) {
   const bothVisible = showMedia && showEffects;
   const noneVisible = !showMedia && !showEffects;
+  const [selectedClip, setSelectedClip] = useState<{ clip: Clip; trackId: string } | null>(null);
 
   return (
     <div className="h-screen pt-8 bg-[#0a0a0a]">
@@ -58,7 +60,7 @@ export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) 
                 <ResizableHandle />
 
                 <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
-                  <Inspector />
+                  <Inspector selectedClip={selectedClip} />
                 </ResizablePanel>
               </ResizablePanelGroup>
             </ResizablePanel>
@@ -66,7 +68,7 @@ export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) 
             <ResizableHandle />
 
             <ResizablePanel defaultSize={40} minSize={20}>
-              <Timeline />
+              <Timeline onClipSelect={setSelectedClip} />
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
