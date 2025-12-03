@@ -1,4 +1,5 @@
 import { Clip } from "../types/timeline";
+import { useVideoThumbnails } from "../hooks/useVideoThumbnails";
 
 interface TimelineClipProps {
 	clip: Clip;
@@ -13,17 +14,32 @@ interface TimelineClipProps {
 	bladeCursorPosition: number | null;
 }
 
-export default function TimelineClip({ clip, trackId, pixelsPerSecond, isSelected, isDragging, onSelect, onDragStart, toolMode, onBladeClick, bladeCursorPosition }: TimelineClipProps) {
+export default function TimelineClip({
+	clip,
+	trackId,
+	pixelsPerSecond,
+	isSelected,
+	isDragging,
+	onSelect,
+	onDragStart,
+	toolMode,
+	onBladeClick,
+	bladeCursorPosition,
+}: TimelineClipProps) {
 	const left = clip.startTime * pixelsPerSecond;
 	const width = clip.duration * pixelsPerSecond;
 	const clipEnd = left + width;
+
+	const thumbnailCount = clip.type === "video" ? Math.max(5, Math.ceil(clip.duration / 2)) : 0;
+	const thumbnails = useVideoThumbnails(clip.type === "video" ? clip.src : "", clip.duration, thumbnailCount);
 
 	// calculate if cursor is over this clip and where
 	const fps = 30;
 	const frameTime = 1 / fps;
 	const frameWidth = frameTime * pixelsPerSecond;
 
-	const isCursorOverClip = bladeCursorPosition !== null &&
+	const isCursorOverClip =
+		bladeCursorPosition !== null &&
 		bladeCursorPosition > left && // don't show at exact start
 		bladeCursorPosition < clipEnd - frameWidth && // don't show at last frame
 		toolMode === "blade";
@@ -58,11 +74,15 @@ export default function TimelineClip({ clip, trackId, pixelsPerSecond, isSelecte
 		onDragStart(e, dragType);
 	};
 
+	const thumbnailWidth = 80;
+	const thumbnailHeight = 45;
+	const repeatCount = thumbnails.length > 0 ? Math.ceil(width / thumbnailWidth) : 0;
+
 	return (
 		<div
-			className={`absolute h-full select-none border-2 rounded ${clip.type === "video" ? "bg-purple-600" : "bg-green-600"} ${
-				isSelected ? "border-red-500" : clip.type === "video" ? "border-purple-400" : "border-green-400"
-			}`}
+			className={`absolute h-full select-none border-2 rounded overflow-hidden ${
+				clip.type === "video" ? "bg-purple-600" : "bg-green-600"
+			} ${isSelected ? "border-red-500" : "border-zinc-800"}`}
 			style={{
 				left: `${left}px`,
 				width: `${width}px`,
@@ -80,8 +100,31 @@ export default function TimelineClip({ clip, trackId, pixelsPerSecond, isSelecte
 				}
 			}}
 		>
-			<div className="h-full flex items-end px-2 pb-1 overflow-hidden">
-				<span className="text-xs text-white truncate">{clip.src.split("/").pop()}</span>
+			{clip.type === "video" && thumbnails.length > 0 && (
+				<div className="absolute inset-0 flex pointer-events-none">
+					{Array.from({ length: repeatCount }).map((_, i) => {
+						const thumbnailIndex = i % thumbnails.length;
+						return (
+							<img
+								key={i}
+								src={thumbnails[thumbnailIndex]}
+								alt=""
+								className="h-full object-cover flex-shrink-0"
+								style={{
+									width: `${thumbnailWidth}px`,
+									height: "100%",
+									objectFit: "cover",
+								}}
+							/>
+						);
+					})}
+				</div>
+			)}
+
+			<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+			<div className="relative h-full flex items-end px-2 pb-1 overflow-hidden">
+				<span className="text-xs text-white truncate drop-shadow-md">{clip.src.split("/").pop()}</span>
 			</div>
 
 			{toolMode === "select" && (

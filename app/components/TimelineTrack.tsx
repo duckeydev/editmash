@@ -15,6 +15,13 @@ interface TimelineTrackProps {
 	onBladeClick: (e: React.MouseEvent, trackId: string) => void;
 	onTrackMouseMove: (e: React.MouseEvent, trackId: string) => void;
 	bladeCursorPosition: number | null;
+	onMediaDrop: (e: React.DragEvent, trackId: string) => void;
+	onMediaDragOver: (e: React.DragEvent, trackId: string) => void;
+	onMediaDragLeave: () => void;
+	timelineRef: React.RefObject<HTMLDivElement | null>;
+	scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+	timelineDuration: number;
+	dragPreview: { trackId: string; startTime: number; duration: number; type: "video" | "audio" } | null;
 }
 
 export default function TimelineTrack({
@@ -31,7 +38,22 @@ export default function TimelineTrack({
 	onBladeClick,
 	onTrackMouseMove,
 	bladeCursorPosition,
+	onMediaDrop,
+	onMediaDragOver,
+	onMediaDragLeave,
+	timelineRef,
+	scrollContainerRef,
+	timelineDuration,
+	dragPreview,
 }: TimelineTrackProps) {
+	const handleDragOver = (e: React.DragEvent) => {
+		onMediaDragOver(e, track.id);
+	};
+
+	const handleDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		onMediaDrop(e, track.id);
+	};
 	return (
 		<div className="flex border-b border-zinc-800">
 			{/* Track label */}
@@ -58,7 +80,29 @@ export default function TimelineTrack({
 				}}
 				onMouseEnter={onTrackMouseEnter}
 				onMouseMove={(e) => onTrackMouseMove(e, track.id)}
+				onDragOver={handleDragOver}
+				onDrop={handleDrop}
+				onDragLeave={onMediaDragLeave}
 			>
+				{dragPreview && dragPreview.trackId === track.id && (
+					<div
+						className={`absolute h-full select-none border-2 rounded overflow-hidden opacity-40 border-zinc-800 ${
+							dragPreview.type === "video" ? "bg-purple-600" : "bg-green-600"
+						}`}
+						style={{
+							left: `${dragPreview.startTime * pixelsPerSecond}px`,
+							width: `${dragPreview.duration * pixelsPerSecond}px`,
+							top: "0",
+							pointerEvents: "none",
+							zIndex: 100,
+						}}
+					>
+						<div className="h-full flex items-center justify-center">
+							<span className="text-xs text-white opacity-70">Drop here</span>
+						</div>
+					</div>
+				)}
+
 				{track.clips.map((clip) => (
 					<TimelineClip
 						key={clip.id}
