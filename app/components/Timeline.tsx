@@ -678,28 +678,29 @@ export default function Timeline({
 
 				if (clipDuration <= 0) return;
 
-				const newClip: Clip = mediaItem.type === "video"
-					? {
-						id: `clip-${Date.now()}-${Math.random()}`,
-						type: "video",
-						src: mediaItem.url,
-						startTime: dropTime,
-						duration: clipDuration,
-						properties: {
-							position: { x: 0, y: 0 },
-							size: { width: 1920, height: 1080 },
-						},
-					}
-					: {
-						id: `clip-${Date.now()}-${Math.random()}`,
-						type: "audio",
-						src: mediaItem.url,
-						startTime: dropTime,
-						duration: clipDuration,
-						properties: {
-							volume: 1.0,
-						},
-					};
+				const newClip: Clip =
+					mediaItem.type === "video"
+						? {
+								id: `clip-${Date.now()}-${Math.random()}`,
+								type: "video",
+								src: mediaItem.url,
+								startTime: dropTime,
+								duration: clipDuration,
+								properties: {
+									position: { x: 0, y: 0 },
+									size: { width: 1920, height: 1080 },
+								},
+						  }
+						: {
+								id: `clip-${Date.now()}-${Math.random()}`,
+								type: "audio",
+								src: mediaItem.url,
+								startTime: dropTime,
+								duration: clipDuration,
+								properties: {
+									volume: 1.0,
+								},
+						  };
 
 				setTimelineState((prev) => {
 					const newState = {
@@ -842,6 +843,25 @@ export default function Timeline({
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [selectedClips, onClipSelect, handleDeleteClip, handleZoomIn, handleZoomOut, handlePlayPause]);
 
+	// handle timeline scroll thru shortcuts
+	useEffect(() => {
+		const scrollContainer = scrollContainerRef.current;
+		if (!scrollContainer) return;
+
+		const handleWheel = (e: WheelEvent) => {
+			if (e.ctrlKey) {
+				e.preventDefault();
+
+				// scroll horizontally
+				scrollContainer.scrollLeft += e.deltaY;
+			}
+			// default vertical scrolling
+		};
+
+		scrollContainer.addEventListener("wheel", handleWheel, { passive: false });
+		return () => scrollContainer.removeEventListener("wheel", handleWheel);
+	}, []);
+
 	const timelineWidth = timelineState.duration * pixelsPerSecond;
 
 	return (
@@ -892,141 +912,158 @@ export default function Timeline({
 			</div>
 
 			{/* timeline area */}
-			<div
-				ref={scrollContainerRef}
-				className="flex-1 overflow-auto relative"
-				style={{
-					cursor:
-						toolMode === "blade"
-							? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M9 3H5a2 2 0 0 0-2 2v4m6-6v6.5m0 0l-3.5 3.5M9 9.5l3.5 3.5M19 3h4m0 0v4m0-4l-7 7m7 10v-4m0 4h-4m4 0l-7-7'/%3E%3C/svg%3E\") 12 12, crosshair"
-							: "default",
-				}}
-				onClick={handleTimelineClick}
-			>
-				<div className="min-w-full inline-block" style={{ width: `${timelineWidth + 200}px` }}>
-					{/* Time ruler */}
-					<div className="flex">
-						<div className="w-32 flex-shrink-0 bg-[#1e1e1e] border-r border-zinc-800 h-8 flex items-center justify-center">
-							<span className="text-sm text-zinc-300 font-mono tabular-nums">
-								{Math.floor(currentTime / 60)
-									.toString()
-									.padStart(2, "0")}
-								:
-								{Math.floor(currentTime % 60)
-									.toString()
-									.padStart(2, "0")}
-								:
-								{Math.floor((currentTime % 1) * 30)
-									.toString()
-									.padStart(2, "0")}
-							</span>
+			<div className="flex-1 flex overflow-hidden relative">
+				{/* Left column - track labels */}
+				<div className="w-32 flex-shrink-0 bg-[#1e1e1e] border-r border-zinc-800 flex flex-col">
+					{/* Time display */}
+					<div className="h-8 border-b border-zinc-800 flex items-center justify-center">
+						<span className="text-sm text-zinc-300 font-mono tabular-nums">
+							{Math.floor(currentTime / 60)
+								.toString()
+								.padStart(2, "0")}
+							:
+							{Math.floor(currentTime % 60)
+								.toString()
+								.padStart(2, "0")}
+							:
+							{Math.floor((currentTime % 1) * 30)
+								.toString()
+								.padStart(2, "0")}
+						</span>
+					</div>
+					{/* Track labels */}
+					{timelineState.tracks.map((track) => (
+						<div key={track.id} className="h-[2.5rem] border-b border-zinc-800 flex items-center px-3">
+							<div className="flex items-center gap-2">
+								<div className={`w-2 h-2 rounded-full ${track.type === "video" ? "bg-purple-500" : "bg-green-500"}`} />
+								<span className="text-sm text-zinc-300 font-medium">
+									{track.type === "video" ? "Video" : "Audio"} {track.id.split("-")[1]}
+								</span>
+							</div>
 						</div>
-						<div className="flex-1" ref={timelineRef}>
+					))}
+				</div>
+
+				{/* Right column - scrollable timeline */}
+				<div
+					ref={scrollContainerRef}
+					className="flex-1 overflow-auto relative"
+					style={{
+						cursor:
+							toolMode === "blade"
+								? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M9 3H5a2 2 0 0 0-2 2v4m6-6v6.5m0 0l-3.5 3.5M9 9.5l3.5 3.5M19 3h4m0 0v4m0-4l-7 7m7 10v-4m0 4h-4m4 0l-7-7'/%3E%3C/svg%3E\") 12 12, crosshair"
+								: "default",
+					}}
+					onClick={handleTimelineClick}
+				>
+					<div className="min-w-full inline-block" style={{ width: `${timelineWidth + 200}px` }}>
+						{/* Time ruler */}
+						<div ref={timelineRef}>
 							<TimeRuler duration={timelineState.duration} pixelsPerSecond={pixelsPerSecond} onSeek={handleSeek} />
 						</div>
-					</div>
 
-					{/* Tracks */}
-					<div className="relative">
-						{timelineState.tracks.map((track) => (
-							<div
-								key={track.id}
-								ref={(el) => {
-									if (el) {
-										trackRefsMap.current.set(track.id, el);
-									} else {
-										trackRefsMap.current.delete(track.id);
-									}
-								}}
-							>
-								<TimelineTrack
-									track={track}
-									pixelsPerSecond={pixelsPerSecond}
-									selectedClips={selectedClips}
-									draggedClipId={dragState?.clipId || null}
-									isHovered={hoveredTrackId === track.id}
-									onClipSelect={handleClipSelect}
-									onClipDragStart={handleClipDragStart}
-									onTrackClick={handleTimelineClick}
-									onTrackMouseEnter={() => setHoveredTrackId(track.id)}
-									toolMode={toolMode}
-									onBladeClick={handleBladeClick}
-									onTrackMouseMove={handleTrackMouseMove}
-									bladeCursorPosition={bladeCursorPosition?.trackId === track.id ? bladeCursorPosition.x : null}
-									onMediaDrop={handleMediaDrop}
-									onMediaDragOver={handleMediaDragOver}
-									onMediaDragLeave={handleMediaDragLeave}
-									timelineRef={timelineRef}
-									scrollContainerRef={scrollContainerRef}
-									timelineDuration={timelineState.duration}
-									dragPreview={dragPreview}
-								/>
-							</div>
-						))}
+						{/* Tracks */}
+						<div className="relative">
+							{timelineState.tracks.map((track) => (
+								<div
+									key={track.id}
+									ref={(el) => {
+										if (el) {
+											trackRefsMap.current.set(track.id, el);
+										} else {
+											trackRefsMap.current.delete(track.id);
+										}
+									}}
+								>
+									<TimelineTrack
+										track={track}
+										pixelsPerSecond={pixelsPerSecond}
+										selectedClips={selectedClips}
+										draggedClipId={dragState?.clipId || null}
+										isHovered={hoveredTrackId === track.id}
+										onClipSelect={handleClipSelect}
+										onClipDragStart={handleClipDragStart}
+										onTrackClick={handleTimelineClick}
+										onTrackMouseEnter={() => setHoveredTrackId(track.id)}
+										toolMode={toolMode}
+										onBladeClick={handleBladeClick}
+										onTrackMouseMove={handleTrackMouseMove}
+										bladeCursorPosition={bladeCursorPosition?.trackId === track.id ? bladeCursorPosition.x : null}
+										onMediaDrop={handleMediaDrop}
+										onMediaDragOver={handleMediaDragOver}
+										onMediaDragLeave={handleMediaDragLeave}
+										timelineRef={timelineRef}
+										scrollContainerRef={scrollContainerRef}
+										timelineDuration={timelineState.duration}
+										dragPreview={dragPreview}
+									/>
+								</div>
+							))}
+						</div>
 					</div>
+				</div>
 
-					{/* Playhead */}
-					<div
-						ref={playheadElementRef}
-						className="absolute z-[60]"
+				{/* Playhead */}
+				<div
+					ref={playheadElementRef}
+					className="absolute z-[60] pointer-events-none"
+					style={{
+						left: "8rem",
+						top: 0,
+						height: "100%",
+						willChange: isPlaying ? "transform" : "auto",
+					}}
+				>
+					{/* Playhead line */}
+					<div className="absolute w-0.5 bg-red-500 h-full" />
+
+					{/* Triangle */}
+					<svg
+						width="12"
+						height="10"
+						viewBox="0 0 12 10"
+						className="absolute top-0 cursor-ew-resize pointer-events-auto"
 						style={{
-							left: `${128}px`,
-							top: 0,
-							height: "100%",
-							pointerEvents: "none",
-							willChange: isPlaying ? "transform" : "auto",
+							left: "1px",
+							transform: "translateX(-50%)",
+							display: "block",
+						}}
+						onMouseDown={(e) => {
+							e.stopPropagation();
+							const startX = e.clientX;
+							const startTime = currentTime;
+							const scrollLeft = scrollContainerRef.current?.scrollLeft || 0;
+
+							const handleMouseMove = (moveEvent: MouseEvent) => {
+								const currentScrollLeft = scrollContainerRef.current?.scrollLeft || 0;
+								const deltaX = moveEvent.clientX - startX + (currentScrollLeft - scrollLeft);
+								const deltaTime = deltaX / pixelsPerSecond;
+								const newTime = Math.max(0, Math.min(startTime + deltaTime, timelineState.duration));
+
+								currentTimeRef.current = newTime;
+								onTimeChange(newTime);
+
+								if (playheadElementRef.current) {
+									playheadElementRef.current.style.transform = `translateX(${newTime * pixelsPerSecond}px)`;
+								}
+							};
+
+							const handleMouseUp = () => {
+								window.removeEventListener("mousemove", handleMouseMove);
+								window.removeEventListener("mouseup", handleMouseUp);
+
+								if (isPlaying) {
+									playbackStartTimeRef.current = performance.now();
+									playbackStartPositionRef.current = currentTimeRef.current;
+								}
+							};
+
+							window.addEventListener("mousemove", handleMouseMove);
+							window.addEventListener("mouseup", handleMouseUp);
 						}}
 					>
-						{/* Playhead line */}
-						<div className="absolute w-0.5 bg-red-500 h-full" />
-
-						{/* Triangle */}
-						<svg
-							width="12"
-							height="10"
-							viewBox="0 0 12 10"
-							className="absolute top-0 cursor-ew-resize"
-							style={{
-								pointerEvents: "auto",
-								left: "1px",
-								transform: "translateX(-50%)",
-								display: "block",
-							}}
-							onMouseDown={(e) => {
-								e.stopPropagation();
-								const startX = e.clientX;
-								const startTime = currentTime;
-
-								const handleMouseMove = (moveEvent: MouseEvent) => {
-									const deltaX = moveEvent.clientX - startX;
-									const deltaTime = deltaX / pixelsPerSecond;
-									const newTime = Math.max(0, Math.min(startTime + deltaTime, timelineState.duration));
-
-									currentTimeRef.current = newTime;
-									onTimeChange(newTime);
-
-									if (playheadElementRef.current) {
-										playheadElementRef.current.style.transform = `translateX(${newTime * pixelsPerSecond}px)`;
-									}
-								};
-
-								const handleMouseUp = () => {
-									window.removeEventListener("mousemove", handleMouseMove);
-									window.removeEventListener("mouseup", handleMouseUp);
-
-									if (isPlaying) {
-										playbackStartTimeRef.current = performance.now();
-										playbackStartPositionRef.current = currentTimeRef.current;
-									}
-								};
-
-								window.addEventListener("mousemove", handleMouseMove);
-								window.addEventListener("mouseup", handleMouseUp);
-							}}
-						>
-							<path d="M6 10 L12 0 L0 0 Z" fill="#ef4444" />
-						</svg>
-					</div>
+						<path d="M6 10 L12 0 L0 0 Z" fill="#ef4444" />
+					</svg>
 				</div>
 			</div>
 		</div>

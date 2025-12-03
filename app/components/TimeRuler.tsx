@@ -77,7 +77,7 @@ function TimeRuler({ duration, pixelsPerSecond, onSeek }: TimeRulerProps) {
 				{ticks.map((tick, idx) => (
 					<div key={idx} className="absolute top-0" style={{ left: `${tick.time * pixelsPerSecond}px` }}>
 						<div className={`w-px ${tick.isSecond ? "h-4 bg-zinc-500" : "h-2 bg-zinc-700"}`} />
-						{tick.label && <span className="absolute top-4 left-0 text-[10px] text-zinc-400 -translate-x-1/2">{tick.label}</span>}
+						{tick.label && <span className="absolute top-4 left-1 text-[10px] text-zinc-400">{tick.label}</span>}
 					</div>
 				))}
 			</div>
