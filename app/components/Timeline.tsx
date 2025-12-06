@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { TimelineState, Clip, DragState } from "../types/timeline";
 import TimelineTrack from "./TimelineTrack";
 import TimeRuler from "./TimeRuler";
-import { ZoomIn, ZoomOut, Play, Pause, MousePointer2, Scissors } from "lucide-react";
+import { ZoomIn, ZoomOut, Play, Pause, MousePointer2, Scissors, Magnet } from "lucide-react";
 import { getCurrentDragItem } from "./MediaBrowser";
 
 // initial demo state
@@ -105,6 +105,7 @@ export default function Timeline({
 	const [dragPreview, setDragPreview] = useState<{ trackId: string; startTime: number; duration: number; type: "video" | "audio" } | null>(
 		null
 	);
+	const [isSnappingEnabled, setIsSnappingEnabled] = useState(true);
 
 	const timelineRef = useRef<HTMLDivElement>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -190,6 +191,89 @@ export default function Timeline({
 		}
 		return null;
 	};
+
+	// calculate snapping for clip positions
+	const calculateSnappedTime = useCallback(
+		(targetTime: number, clipId: string, clipDuration: number): number => {
+			if (!isSnappingEnabled) return targetTime;
+
+			const snapThreshold = 0.15; // 150ms
+			let closestSnapPoint: number | null = null;
+			let minDistance = snapThreshold;
+
+			const clipEnd = targetTime + clipDuration;
+
+			const snapPoints: number[] = [0]; // timeline start
+
+			snapPoints.push(currentTimeRef.current);
+
+			timelineState.tracks.forEach((track) => {
+				track.clips.forEach((clip) => {
+					if (clip.id === clipId) return; // skip the clip being dragged
+
+					const start = clip.startTime;
+					const end = clip.startTime + clip.duration;
+
+					snapPoints.push(start, end);
+				});
+			});
+
+			// check snap for clip start
+			for (const snapPoint of snapPoints) {
+				const distance = Math.abs(targetTime - snapPoint);
+				if (distance < minDistance) {
+					minDistance = distance;
+					closestSnapPoint = snapPoint;
+				}
+			}
+
+			// check snap for clip end
+			for (const snapPoint of snapPoints) {
+				const distance = Math.abs(clipEnd - snapPoint);
+				if (distance < minDistance) {
+					minDistance = distance;
+					closestSnapPoint = snapPoint - clipDuration;
+				}
+			}
+
+			return closestSnapPoint !== null ? closestSnapPoint : targetTime;
+		},
+		[isSnappingEnabled, timelineState.tracks, currentTimeRef]
+	);
+
+	// calculate snapping for playhead position
+	const calculatePlayheadSnappedTime = useCallback(
+		(targetTime: number): number => {
+			if (!isSnappingEnabled) return targetTime;
+
+			const snapThreshold = 0.15; // 150ms
+			let closestSnapPoint: number | null = null;
+			let minDistance = snapThreshold;
+
+			const snapPoints: number[] = [0];
+
+			timelineState.tracks.forEach((track) => {
+				track.clips.forEach((clip) => {
+					const start = clip.startTime;
+					const end = clip.startTime + clip.duration;
+
+					snapPoints.push(start, end);
+				});
+			});
+
+			// find closest snap point
+			for (const snapPoint of snapPoints) {
+				const distance = Math.abs(targetTime - snapPoint);
+				if (distance < minDistance) {
+					minDistance = distance;
+					closestSnapPoint = snapPoint;
+				}
+			}
+
+			return closestSnapPoint !== null ? closestSnapPoint : targetTime;
+		},
+		[isSnappingEnabled, timelineState.tracks]
+	);
 
 	// clip placement on drop
 	const handleClipPlacement = useCallback((clip: Clip, trackId: string, state: TimelineState): TimelineState => {
@@ -343,6 +427,9 @@ export default function Timeline({
 						if (dragState.type === "move") {
 							let newStartTime = Math.max(0, dragState.startTime + deltaTime);
 							newStartTime = Math.min(newStartTime, prev.duration - clip.duration);
+
+							newStartTime = calculateSnappedTime(newStartTime, clip.id, clip.duration);
+
 							clip.startTime = newStartTime;
 
 							// handle cross-track movement
@@ -411,7 +498,7 @@ export default function Timeline({
 			window.removeEventListener("mousemove", handleMouseMove);
 			window.removeEventListener("mouseup", handleMouseUp);
 		};
-	}, [dragState, pixelsPerSecond]);
+	}, [dragState, pixelsPerSecond, calculateSnappedTime, handleClipPlacement]);
 
 	const handleClipSelect = (clipId: string, trackId: string, event?: { ctrlKey: boolean; shiftKey: boolean }) => {
 		const ctrlKey = event?.ctrlKey || false;
@@ -551,15 +638,16 @@ export default function Timeline({
 
 	const handleSeek = useCallback(
 		(time: number) => {
-			currentTimeRef.current = time;
-			onTimeChange(time);
+			const snappedTime = calculatePlayheadSnappedTime(time);
+			currentTimeRef.current = snappedTime;
+			onTimeChange(snappedTime);
 
 			if (isPlaying) {
 				playbackStartTimeRef.current = performance.now();
-				playbackStartPositionRef.current = time;
+				playbackStartPositionRef.current = snappedTime;
 			}
 		},
-		[onTimeChange, currentTimeRef, isPlaying]
+		[onTimeChange, currentTimeRef, isPlaying, calculatePlayheadSnappedTime]
 	);
 
 	const handlePlayPause = useCallback(() => {
@@ -822,6 +910,9 @@ export default function Timeline({
 			} else if (e.key === "b" || e.key === "B") {
 				e.preventDefault();
 				setToolMode("blade");
+			} else if (e.key === "n" || e.key === "N") {
+				e.preventDefault();
+				setIsSnappingEnabled((prev) => !prev);
 			} else if (e.ctrlKey && (e.key === "=" || e.key === "+")) {
 				e.preventDefault();
 				handleZoomIn();
@@ -897,6 +988,16 @@ export default function Timeline({
 							<Scissors size={16} />
 						</button>
 					</div>
+					<div className="w-px h-6 bg-zinc-700" />
+					<button
+						onClick={() => setIsSnappingEnabled(!isSnappingEnabled)}
+						className={`p-1.5 rounded ${
+							isSnappingEnabled ? "bg-blue-600 text-white" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+						}`}
+						title={isSnappingEnabled ? "Snapping Enabled (N)" : "Snapping Disabled (N)"}
+					>
+						<Magnet size={16} />
+					</button>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="flex items-center gap-1">
@@ -1038,7 +1139,9 @@ export default function Timeline({
 								const currentScrollLeft = scrollContainerRef.current?.scrollLeft || 0;
 								const deltaX = moveEvent.clientX - startX + (currentScrollLeft - scrollLeft);
 								const deltaTime = deltaX / pixelsPerSecond;
-								const newTime = Math.max(0, Math.min(startTime + deltaTime, timelineState.duration));
+								let newTime = Math.max(0, Math.min(startTime + deltaTime, timelineState.duration));
+
+								newTime = calculatePlayheadSnappedTime(newTime);
 
 								currentTimeRef.current = newTime;
 								onTimeChange(newTime);
