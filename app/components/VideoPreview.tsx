@@ -11,13 +11,7 @@ interface VideoPreviewProps {
 	onPlayPause: () => void;
 }
 
-export default function VideoPreview({
-	timelineState,
-	currentTime,
-	currentTimeRef,
-	isPlaying,
-	onPlayPause,
-}: VideoPreviewProps) {
+export default function VideoPreview({ timelineState, currentTime, currentTimeRef, isPlaying, onPlayPause }: VideoPreviewProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
 	const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
@@ -43,7 +37,7 @@ export default function VideoPreview({
 						videoEl = document.createElement("video");
 						videoEl.src = videoClip.src;
 						videoEl.preload = "auto";
-						videoEl.muted = true; // mute to avoid audio conflict. ideally we'd wanna extract it into an audio clip, but this will be too disruptive to the user experience. 
+						videoEl.muted = true; // mute to avoid audio conflict. ideally we'd wanna extract it into an audio clip, but this will be too disruptive to the user experience when multiplayer.
 						videoEl.playsInline = true;
 					}
 					newVideoElements.set(videoClip.id, videoEl);
@@ -128,26 +122,105 @@ export default function VideoPreview({
 				const videoEl = videoElementsRef.current.get(clip.id);
 				if (!videoEl) continue;
 
-				const internalTime = currentTimeValue - clip.startTime;
+				const timeInClip = currentTimeValue - clip.startTime;
+				const props = clip.properties;
+
+				let internalTime: number;
+
+				// speed
+				if (props.freezeFrame) {
+					internalTime = clip.sourceIn + props.freezeFrameTime;
+				} else {
+					internalTime = clip.sourceIn + (timeInClip * props.speed);
+				}
+
+				const videoDuration = isFinite(videoEl.duration) && videoEl.duration > 0 ? videoEl.duration : 0;
+				const clampMax = videoDuration > 0 ? Math.max(clip.duration, videoDuration) : clip.duration;
+
+				internalTime = Math.max(0, Math.min(internalTime, clampMax));
 
 				if (Math.abs(videoEl.currentTime - internalTime) > 0.1) {
 					try {
-						videoEl.currentTime = internalTime;
+						videoEl.currentTime = Math.max(0, Math.min(internalTime, clampMax));
 					} catch (err) {
 						console.error("Error seeking video:", err);
 					}
 				}
 
+				// transformations & crop
 				try {
-					const { x, y } = clip.properties.position;
-					const { width, height } = clip.properties.size;
-					ctx.drawImage(videoEl, x, y, width, height);
+					const { x, y } = props.position;
+					const { width, height } = props.size;
+					const { zoom, rotation, pitch, yaw, flip, crop } = props;
+
+					ctx.save();
+
+					// center point for transformations
+					const centerX = x + width / 2;
+					const centerY = y + height / 2;
+
+					ctx.translate(centerX, centerY);
+
+					// rotation
+					ctx.rotate((rotation * Math.PI) / 180);
+
+					// flip
+					const scaleX = flip.horizontal ? -1 : 1;
+					const scaleY = flip.vertical ? -1 : 1;
+					ctx.scale(scaleX * zoom.x, scaleY * zoom.y);
+
+					// pitch & yaw
+					const pitchRad = (pitch * Math.PI) / 180;
+					const yawRad = (yaw * Math.PI) / 180;
+
+					const pitchScale = Math.cos(pitchRad);
+					const yawScale = Math.cos(yawRad);
+
+					// crop
+					const sourceX = crop.left;
+					const sourceY = crop.top;
+
+					const origVideoWidth = videoEl.videoWidth;
+					const origVideoHeight = videoEl.videoHeight;
+
+					const vw = origVideoWidth > 0 ? origVideoWidth : 1;
+					const vh = origVideoHeight > 0 ? origVideoHeight : 1;
+
+					const sourceWidth = Math.max(0, vw - crop.left - crop.right);
+					const sourceHeight = Math.max(0, vh - crop.top - crop.bottom);
+
+					const cropWidthRatio = sourceWidth / vw;
+					const cropHeightRatio = sourceHeight / vh;
+
+					const croppedDestWidth = width * cropWidthRatio;
+					const croppedDestHeight = height * cropHeightRatio;
+
+					const finalWidth = croppedDestWidth * yawScale;
+					const finalHeight = croppedDestHeight * pitchScale;
+
+					const cropOffsetX = (width * (crop.left - crop.right)) / (2 * vw);
+					const cropOffsetY = (height * (crop.top - crop.bottom)) / (2 * vh);
+
+					const drawX = -finalWidth / 2 + cropOffsetX;
+					const drawY = -finalHeight / 2 + cropOffsetY;
+
+					// original video dimensions are not available yet, skip drawing
+					if (origVideoWidth <= 0 || origVideoHeight <= 0) {
+						ctx.restore();
+						continue;
+					}
+
+					if (sourceWidth > 0 && sourceHeight > 0) {
+						ctx.drawImage(videoEl, sourceX, sourceY, sourceWidth, sourceHeight, drawX, drawY, finalWidth, finalHeight);
+					}
+
+					ctx.restore();
 				} catch (err) {
-					// Video might not be loaded yet
+					console.error("Error rendering video frame:", err);
 				}
 			}
 
-			// Handle audio tracks
+			// Render audio tracks
 			timelineState.tracks.forEach((track) => {
 				if (track.type === "audio") {
 					track.clips.forEach((clip) => {

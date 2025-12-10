@@ -1,6 +1,15 @@
 export interface VideoClipProperties {
 	position: { x: number; y: number };
 	size: { width: number; height: number };
+	zoom: { x: number; y: number; linked: boolean };
+	rotation: number;
+	pitch: number;
+	yaw: number;
+	flip: { horizontal: boolean; vertical: boolean };
+	crop: { left: number; right: number; top: number; bottom: number; softness: number };
+	speed: number;
+	freezeFrame: boolean;
+	freezeFrameTime: number;
 }
 
 export interface AudioClipProperties {
@@ -10,8 +19,9 @@ export interface AudioClipProperties {
 export interface BaseClip {
 	id: string;
 	src: string;
-	startTime: number;
-	duration: number;
+	startTime: number; // position on timeline
+	duration: number; // duration on timeline (can be affected by speed)
+	sourceIn: number; // offset into the source video file
 }
 
 export interface VideoClip extends BaseClip {
@@ -50,6 +60,7 @@ export interface DragState {
 	startY: number;
 	startTime: number;
 	startDuration: number;
+	originalSourceIn: number;
 	originalTrackId: string;
 	currentTrackId: string;
 	hasMoved: boolean;

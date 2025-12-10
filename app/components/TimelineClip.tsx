@@ -1,5 +1,6 @@
-import { Clip } from "../types/timeline";
+import { Clip, VideoClip } from "../types/timeline";
 import { useVideoThumbnails } from "../hooks/useVideoThumbnails";
+import { Snowflake } from "lucide-react";
 
 interface TimelineClipProps {
 	clip: Clip;
@@ -126,6 +127,12 @@ export default function TimelineClip({
 			<div className="relative h-full flex items-end px-2 pb-1 overflow-hidden">
 				<span className="text-xs text-white truncate drop-shadow-md">{clip.src.split("/").pop()}</span>
 			</div>
+
+			{clip.type === "video" && (clip as VideoClip).properties.freezeFrame && (
+				<div className="absolute top-1 right-1 pointer-events-none">
+					<Snowflake className="w-4 h-4 text-cyan-400 drop-shadow-md" />
+				</div>
+			)}
 
 			{toolMode === "select" && (
 				<>
