@@ -1,6 +1,7 @@
 import { memo } from "react";
-import { Clip, VideoClip } from "../types/timeline";
+import { Clip, VideoClip, AudioClip } from "../types/timeline";
 import { useVideoThumbnails } from "../hooks/useVideoThumbnails";
+import { useAudioWaveform } from "../hooks/useAudioWaveform";
 import { Snowflake } from "lucide-react";
 
 interface TimelineClipProps {
@@ -34,6 +35,11 @@ function TimelineClip({
 
 	const thumbnailCount = clip.type === "video" ? Math.max(5, Math.ceil(clip.duration / 2)) : 0;
 	const thumbnails = useVideoThumbnails(clip.type === "video" ? clip.src : "", clip.duration, thumbnailCount);
+
+	const waveformSampleCount = Math.max(50, Math.ceil(width / 3));
+	const waveformPeaks = useAudioWaveform(clip.type === "audio" ? clip.src : "", waveformSampleCount);
+
+	const volumeMultiplier = clip.type === "audio" ? (clip as AudioClip).properties.volume : 1;
 
 	// calculate if cursor is over this clip and where
 	const fps = 30;
@@ -120,6 +126,56 @@ function TimelineClip({
 							/>
 						);
 					})}
+				</div>
+			)}
+
+			{clip.type === "audio" && waveformPeaks.length > 0 && (
+				<div className="absolute inset-0 flex items-center pointer-events-none px-1">
+					<svg className="w-full h-full" preserveAspectRatio="none" viewBox={`0 0 ${waveformPeaks.length} 2`}>
+						<path
+							d={waveformPeaks
+								.map((peak, i) => {
+									const x = i + 0.5;
+									const yMax = 1 - peak.max * volumeMultiplier;
+									const yMin = 1 - peak.min * volumeMultiplier;
+
+									if (i === 0) {
+										return `M ${x} ${yMax} L ${x} ${yMin}`;
+									}
+									return `L ${x} ${yMax} L ${x} ${yMin}`;
+								})
+								.join(" ")}
+							fill="none"
+							stroke="rgba(255, 255, 255, 0.8)"
+							strokeWidth="1"
+							vectorEffect="non-scaling-stroke"
+						/>
+						<path
+							d={
+								waveformPeaks
+									.map((peak, i) => {
+										const x = i + 0.5;
+										const yMax = 1 - peak.max * volumeMultiplier;
+										if (i === 0) return `M ${x} 1 L ${x} ${yMax}`;
+										return `L ${x} ${yMax}`;
+									})
+									.join(" ") +
+								" " +
+								waveformPeaks
+									.slice()
+									.reverse()
+									.map((peak, i) => {
+										const x = waveformPeaks.length - i - 0.5;
+										const yMin = 1 - peak.min * volumeMultiplier;
+										return `L ${x} ${yMin}`;
+									})
+									.join(" ") +
+								" Z"
+							}
+							fill="rgba(255, 255, 255, 0.6)"
+							stroke="none"
+						/>
+					</svg>
 				</div>
 			)}
 
