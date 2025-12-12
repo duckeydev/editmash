@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { TimelineState, VideoClip, AudioClip } from "../types/timeline";
+import { useRef, useEffect, useState } from "react";
+import { TimelineState, VideoClip, AudioClip, Clip } from "../types/timeline";
 import * as Tone from "tone";
 
 interface VideoPreviewProps {
@@ -10,6 +10,9 @@ interface VideoPreviewProps {
 	currentTimeRef: React.MutableRefObject<number>;
 	isPlaying: boolean;
 	onPlayPause: () => void;
+	transformMode?: "transform" | "crop" | null;
+	selectedClips?: { clip: Clip; trackId: string }[] | null;
+	onClipUpdate?: (trackId: string, clipId: string, updates: Partial<VideoClip> | Partial<AudioClip>) => void;
 }
 
 interface AudioNodes {
@@ -22,14 +25,28 @@ interface AudioNodes {
 
 const audioSourcesMap = new WeakMap<HTMLAudioElement, boolean>();
 
-export default function VideoPreview({ timelineState, currentTime, currentTimeRef, isPlaying, onPlayPause }: VideoPreviewProps) {
+export default function VideoPreview({
+	timelineState,
+	currentTime,
+	currentTimeRef,
+	isPlaying,
+	onPlayPause,
+	transformMode,
+	selectedClips,
+	onClipUpdate,
+}: VideoPreviewProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 	const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
 	const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 	const audioNodesRef = useRef<Map<string, AudioNodes>>(new Map());
 	const audioContextRef = useRef<AudioContext | null>(null);
 	const animationFrameRef = useRef<number | null>(null);
 	const audioPlayPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
+
+	const [isDragging, setIsDragging] = useState(false);
+	const [dragType, setDragType] = useState<"move" | "resize" | "crop" | null>(null);
+	const [dragHandle, setDragHandle] = useState<"nw" | "ne" | "sw" | "se" | "n" | "e" | "s" | "w" | null>(null);
 
 	const CANVAS_WIDTH = 1920;
 	const CANVAS_HEIGHT = 1080;
@@ -224,6 +241,9 @@ export default function VideoPreview({ timelineState, currentTime, currentTimeRe
 				let internalTime: number;
 
 				// speed
+				const videoDuration = isFinite(videoEl.duration) && videoEl.duration > 0 ? videoEl.duration : 0;
+				const clampMax = videoDuration > 0 ? Math.max(clip.duration, videoDuration) : clip.duration;
+
 				if (props.freezeFrame) {
 					internalTime = clip.sourceIn + props.freezeFrameTime;
 					if (!videoEl.paused) {
@@ -235,9 +255,6 @@ export default function VideoPreview({ timelineState, currentTime, currentTimeRe
 				} else {
 					internalTime = clip.sourceIn + timeInClip * props.speed;
 				}
-
-				const videoDuration = isFinite(videoEl.duration) && videoEl.duration > 0 ? videoEl.duration : 0;
-				const clampMax = videoDuration > 0 ? Math.max(clip.duration, videoDuration) : clip.duration;
 
 				internalTime = Math.max(0, Math.min(internalTime, clampMax));
 
@@ -430,10 +447,212 @@ export default function VideoPreview({ timelineState, currentTime, currentTimeRe
 		};
 	}, [timelineState, isPlaying, currentTimeRef]);
 
+	const selectedVideoClip =
+		selectedClips && selectedClips.length === 1 && selectedClips[0].clip.type === "video"
+			? (selectedClips[0] as { clip: VideoClip; trackId: string })
+			: null;
+
+	const getDisplayRect = (clip: VideoClip) => {
+		if (!canvasRef.current || !containerRef.current) return null;
+
+		const canvas = canvasRef.current;
+		const canvasRect = canvas.getBoundingClientRect();
+
+		const displayScale = canvasRect.width / CANVAS_WIDTH;
+
+		const props = clip.properties;
+		const { position, size, zoom, crop } = props;
+
+		const baseWidth = size.width;
+		const baseHeight = size.height;
+
+		let canvasX, canvasY, canvasWidth, canvasHeight;
+
+		if (transformMode === "crop") {
+			const videoEl = videoElementsRef.current.get(clip.id);
+			const videoWidth = videoEl?.videoWidth || 1920;
+			const videoHeight = videoEl?.videoHeight || 1080;
+
+			const sourceWidth = videoWidth - crop.left - crop.right;
+			const sourceHeight = videoHeight - crop.top - crop.bottom;
+
+			const cropWidthRatio = sourceWidth / videoWidth;
+			const cropHeightRatio = sourceHeight / videoHeight;
+
+			const visibleBaseWidth = baseWidth * cropWidthRatio;
+			const visibleBaseHeight = baseHeight * cropHeightRatio;
+
+			canvasWidth = visibleBaseWidth * zoom.x;
+			canvasHeight = visibleBaseHeight * zoom.y;
+
+			const centerX = position.x + baseWidth / 2;
+			const centerY = position.y + baseHeight / 2;
+
+			const cropOffsetX = (baseWidth * (crop.left - crop.right)) / (2 * videoWidth);
+			const cropOffsetY = (baseHeight * (crop.top - crop.bottom)) / (2 * videoHeight);
+
+			canvasX = centerX - canvasWidth / 2 + cropOffsetX * zoom.x;
+			canvasY = centerY - canvasHeight / 2 + cropOffsetY * zoom.y;
+		} else {
+			const centerX = position.x + baseWidth / 2;
+			const centerY = position.y + baseHeight / 2;
+
+			canvasWidth = baseWidth * zoom.x;
+			canvasHeight = baseHeight * zoom.y;
+
+			canvasX = centerX - canvasWidth / 2;
+			canvasY = centerY - canvasHeight / 2;
+		}
+
+		const result = {
+			x: canvasX * displayScale,
+			y: canvasY * displayScale,
+			width: canvasWidth * displayScale,
+			height: canvasHeight * displayScale,
+			scaleX: displayScale,
+			scaleY: displayScale,
+		};
+
+		return result;
+	};
+
+	const handleTransformMouseDown = (e: React.MouseEvent, type: "move" | "resize" | "crop", handle?: typeof dragHandle) => {
+		if (!selectedVideoClip || !onClipUpdate) return;
+
+		e.preventDefault();
+		e.stopPropagation();
+
+		setIsDragging(true);
+		setDragType(type);
+		if (handle) setDragHandle(handle);
+
+		const startX = e.clientX;
+		const startY = e.clientY;
+		const clip = selectedVideoClip.clip;
+		const startProps = { ...clip.properties };
+
+		const handleMouseMove = (moveEvent: MouseEvent) => {
+			if (!canvasRef.current || !selectedVideoClip) return;
+
+			const currentClip = selectedVideoClip.clip;
+			const currentProps = currentClip.properties as typeof startProps;
+
+			const canvasRect = canvasRef.current.getBoundingClientRect();
+			const scaleX = CANVAS_WIDTH / canvasRect.width;
+			const scaleY = CANVAS_HEIGHT / canvasRect.height;
+
+			const deltaX = (moveEvent.clientX - startX) * scaleX;
+			const deltaY = (moveEvent.clientY - startY) * scaleY;
+
+			if (type === "move") {
+				const newX = startProps.position.x + deltaX;
+				const newY = startProps.position.y + deltaY;
+
+				onClipUpdate(selectedVideoClip.trackId, clip.id, {
+					properties: {
+						...currentProps,
+						position: { x: newX, y: newY },
+					},
+				});
+			} else if (type === "resize" && handle) {
+				let newZoomX = currentProps.zoom.x;
+				let newZoomY = currentProps.zoom.y;
+
+				const currentRenderedWidth = currentProps.size.width * currentProps.zoom.x;
+				const currentRenderedHeight = currentProps.size.height * currentProps.zoom.y;
+
+				const isCorner = handle.length === 2; // "nw", "ne", "sw", "se"
+				const isEdge = handle.length === 1; // "n", "e", "s", "w"
+
+				let newRenderedWidth = currentRenderedWidth;
+				let newRenderedHeight = currentRenderedHeight;
+
+				if (handle.includes("e")) {
+					newRenderedWidth = Math.max(50, currentRenderedWidth + deltaX);
+				}
+				if (handle.includes("w")) {
+					newRenderedWidth = Math.max(50, currentRenderedWidth - deltaX);
+				}
+				if (handle.includes("s")) {
+					newRenderedHeight = Math.max(50, currentRenderedHeight + deltaY);
+				}
+				if (handle.includes("n")) {
+					newRenderedHeight = Math.max(50, currentRenderedHeight - deltaY);
+				}
+
+				const calculatedZoomX = newRenderedWidth / currentProps.size.width;
+				const calculatedZoomY = newRenderedHeight / currentProps.size.height;
+
+				if (isCorner) {
+					const avgZoom = (calculatedZoomX + calculatedZoomY) / 2;
+					newZoomX = avgZoom;
+					newZoomY = avgZoom;
+				} else if (isEdge) {
+					if (handle === "e" || handle === "w") {
+						newZoomX = calculatedZoomX;
+						newZoomY = currentProps.zoom.y;
+					} else if (handle === "n" || handle === "s") {
+						newZoomX = currentProps.zoom.x;
+						newZoomY = calculatedZoomY;
+					}
+				}
+
+				newZoomX = Math.max(0.1, Math.min(10, newZoomX));
+				newZoomY = Math.max(0.1, Math.min(10, newZoomY));
+
+				onClipUpdate(selectedVideoClip.trackId, clip.id, {
+					properties: {
+						...currentProps,
+						zoom: { x: newZoomX, y: newZoomY, linked: currentProps.zoom.linked },
+					},
+				});
+			} else if (type === "crop" && handle) {
+				const videoEl = videoElementsRef.current.get(selectedVideoClip.clip.id);
+				const videoWidth = videoEl?.videoWidth || 1920;
+				const videoHeight = videoEl?.videoHeight || 1080;
+
+				let newCrop = { ...currentProps.crop };
+
+				if (handle.includes("w")) {
+					newCrop.left = Math.min(videoWidth - startProps.crop.right, Math.max(0, startProps.crop.left + deltaX));
+				}
+				if (handle.includes("e")) {
+					newCrop.right = Math.min(videoWidth - startProps.crop.left, Math.max(0, startProps.crop.right - deltaX));
+				}
+				if (handle.includes("n")) {
+					newCrop.top = Math.min(videoHeight - startProps.crop.bottom, Math.max(0, startProps.crop.top + deltaY));
+				}
+				if (handle.includes("s")) {
+					newCrop.bottom = Math.min(videoHeight - startProps.crop.top, Math.max(0, startProps.crop.bottom - deltaY));
+				}
+
+				onClipUpdate(selectedVideoClip.trackId, clip.id, {
+					properties: {
+						...currentProps,
+						crop: newCrop,
+					},
+				});
+			}
+		};
+
+		const handleMouseUp = () => {
+			setIsDragging(false);
+			setDragType(null);
+			setDragHandle(null);
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("mouseup", handleMouseUp);
+		};
+
+		window.addEventListener("mousemove", handleMouseMove);
+		window.addEventListener("mouseup", handleMouseUp);
+	};
+
+	const displayRect = selectedVideoClip && transformMode ? getDisplayRect(selectedVideoClip.clip) : null;
+
 	return (
 		<div className="h-full bg-[#1a1a1a] flex flex-col">
 			<div className="flex-1 flex items-center justify-center p-4">
-				<div className="relative" style={{ maxWidth: "100%", maxHeight: "100%" }}>
+				<div ref={containerRef} className="relative" style={{ maxWidth: "100%", maxHeight: "100%" }}>
 					<canvas
 						ref={canvasRef}
 						width={CANVAS_WIDTH}
@@ -445,6 +664,66 @@ export default function VideoPreview({ timelineState, currentTime, currentTimeRe
 							aspectRatio: "16/9",
 						}}
 					/>
+
+					{/* Transform overlay */}
+					{displayRect && selectedVideoClip && transformMode && (
+						<div
+							className="absolute border-2 border-blue-500 pointer-events-none"
+							style={{
+								left: `${displayRect.x}px`,
+								top: `${displayRect.y}px`,
+								width: `${displayRect.width}px`,
+								height: `${displayRect.height}px`,
+							}}
+						>
+							{/* Center circle for moving */}
+							<div
+								className="absolute bg-blue-500 rounded-full pointer-events-auto cursor-move"
+								style={{
+									width: "12px",
+									height: "12px",
+									left: "50%",
+									top: "50%",
+									transform: "translate(-50%, -50%)",
+								}}
+								onMouseDown={(e) => handleTransformMouseDown(e, "move")}
+							/>
+
+							{/* Corner handles */}
+							{["nw", "ne", "sw", "se"].map((handle) => (
+								<div
+									key={handle}
+									className="absolute bg-white border-2 border-blue-500 pointer-events-auto"
+									style={{
+										width: "8px",
+										height: "8px",
+										...(handle.includes("n") ? { top: "-4px" } : { bottom: "-4px" }),
+										...(handle.includes("w") ? { left: "-4px" } : { right: "-4px" }),
+										cursor: `${handle}-resize`,
+									}}
+									onMouseDown={(e) => handleTransformMouseDown(e, transformMode === "crop" ? "crop" : "resize", handle as any)}
+								/>
+							))}
+
+							{/* Edge handles */}
+							{["n", "e", "s", "w"].map((handle) => (
+								<div
+									key={handle}
+									className="absolute bg-white border-2 border-blue-500 pointer-events-auto"
+									style={{
+										width: handle === "n" || handle === "s" ? "8px" : "2px",
+										height: handle === "e" || handle === "w" ? "8px" : "2px",
+										...(handle === "n" && { top: "-4px", left: "50%", transform: "translateX(-50%)" }),
+										...(handle === "s" && { bottom: "-4px", left: "50%", transform: "translateX(-50%)" }),
+										...(handle === "e" && { right: "-4px", top: "50%", transform: "translateY(-50%)" }),
+										...(handle === "w" && { left: "-4px", top: "50%", transform: "translateY(-50%)" }),
+										cursor: `${handle}-resize`,
+									}}
+									onMouseDown={(e) => handleTransformMouseDown(e, transformMode === "crop" ? "crop" : "resize", handle as any)}
+								/>
+							))}
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

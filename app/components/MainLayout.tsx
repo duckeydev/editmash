@@ -25,6 +25,7 @@ export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) 
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
+	const [transformMode, setTransformMode] = useState<"transform" | "crop" | null>(null);
 
 	const currentTimeRef = useRef(0);
 	const timelineRef = useRef<TimelineRef>(null);
@@ -70,6 +71,9 @@ export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) 
 										currentTimeRef={currentTimeRef}
 										isPlaying={isPlaying}
 										onPlayPause={() => setIsPlaying(!isPlaying)}
+										transformMode={transformMode}
+										selectedClips={selectedClips}
+										onClipUpdate={handleClipUpdate}
 									/>
 								</ResizablePanel>
 
@@ -93,6 +97,7 @@ export default function MainLayout({ showMedia, showEffects }: MainLayoutProps) 
 								isPlaying={isPlaying}
 								onPlayingChange={setIsPlaying}
 								onTimelineStateChange={setTimelineState}
+								onTransformModeChange={setTransformMode}
 							/>
 						</ResizablePanel>
 					</ResizablePanelGroup>

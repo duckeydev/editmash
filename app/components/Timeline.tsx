@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImper
 import { TimelineState, Clip, DragState, VideoClip, AudioClip } from "../types/timeline";
 import TimelineTrack from "./TimelineTrack";
 import TimeRuler from "./TimeRuler";
-import { ZoomIn, ZoomOut, Play, Pause, MousePointer2, Scissors, Magnet } from "lucide-react";
+import { ZoomIn, ZoomOut, Play, Pause, MousePointer2, Scissors, Magnet, Undo2, Redo2, Square, Crop, ChevronDown } from "lucide-react";
 import { getCurrentDragItem } from "./MediaBrowser";
+import { historyStore } from "../store/historyStore";
 
 // initial demo state
 const initialTimelineState: TimelineState = {
@@ -117,6 +118,7 @@ interface TimelineProps {
 	isPlaying: boolean;
 	onPlayingChange: (playing: boolean) => void;
 	onTimelineStateChange: (state: TimelineState) => void;
+	onTransformModeChange?: (mode: "transform" | "crop" | null) => void;
 }
 
 export interface TimelineRef {
@@ -124,7 +126,10 @@ export interface TimelineRef {
 }
 
 const Timeline = forwardRef<TimelineRef, TimelineProps>(
-	({ onClipSelect, currentTime, currentTimeRef, onTimeChange, isPlaying, onPlayingChange, onTimelineStateChange }, ref) => {
+	(
+		{ onClipSelect, currentTime, currentTimeRef, onTimeChange, isPlaying, onPlayingChange, onTimelineStateChange, onTransformModeChange },
+		ref
+	) => {
 		const [timelineState, setTimelineState] = useState<TimelineState>(initialTimelineState);
 		const [selectedClips, setSelectedClips] = useState<Array<{ clipId: string; trackId: string }>>([]);
 		const [pixelsPerSecond, setPixelsPerSecond] = useState(50);
@@ -141,6 +146,10 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 		} | null>(null);
 		const [isSnappingEnabled, setIsSnappingEnabled] = useState(true);
 		const [clipboard, setClipboard] = useState<Array<{ clip: Clip; trackId: string }> | null>(null);
+		const [canUndo, setCanUndo] = useState(false);
+		const [canRedo, setCanRedo] = useState(false);
+		const [transformMode, setTransformMode] = useState<"transform" | "crop" | null>(null);
+		const [showTransformMenu, setShowTransformMenu] = useState(false);
 
 		const timelineRef = useRef<HTMLDivElement>(null);
 		const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -156,11 +165,19 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 		const dragUpdateScheduledRef = useRef<boolean>(false);
 		const pendingDragUpdateRef = useRef<{ deltaTime: number; currentTrackId: string } | null>(null);
 
+		const updateTimelineState = useCallback((updater: (prev: TimelineState) => TimelineState) => {
+			setTimelineState((prev) => {
+				const newState = updater(prev);
+				historyStore.push(newState);
+				return newState;
+			});
+		}, []);
+
 		useImperativeHandle(
 			ref,
 			() => ({
 				updateClip: (trackId: string, clipId: string, updates: Partial<VideoClip> | Partial<AudioClip>) => {
-					setTimelineState((prev) => {
+					updateTimelineState((prev) => {
 						const newState = {
 							...prev,
 							tracks: prev.tracks.map((t) =>
@@ -194,13 +211,33 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					});
 				},
 			}),
-			[]
+			[updateTimelineState]
 		);
 
 		useEffect(() => {
 			if (dragState) return;
 			onTimelineStateChange(timelineState);
 		}, [timelineState, onTimelineStateChange, dragState]);
+
+		useEffect(() => {
+			onTransformModeChange?.(transformMode);
+		}, [transformMode, onTransformModeChange]);
+
+		useEffect(() => {
+			historyStore.push(initialTimelineState);
+			setCanUndo(historyStore.canUndo());
+			setCanRedo(historyStore.canRedo());
+		}, []);
+
+		useEffect(() => {
+			const unsubscribe = historyStore.subscribe(() => {
+				setCanUndo(historyStore.canUndo());
+				setCanRedo(historyStore.canRedo());
+			});
+			return () => {
+				unsubscribe();
+			};
+		}, []);
 
 		useEffect(() => {
 			if (selectedClips.length > 0 && onClipSelect) {
@@ -575,14 +612,17 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
 			const handleMouseUp = () => {
 				const currentDragState = dragStateRef.current;
-				if (currentDragState && currentDragState.type === "move" && currentDragState.hasMoved) {
-					setTimelineState((prev) => {
-						const track = prev.tracks.find((t) => t.id === currentDragState.trackId);
-						const clip = track?.clips.find((c) => c.id === currentDragState.clipId);
+				if (currentDragState && currentDragState.hasMoved) {
+					updateTimelineState((prev) => {
+						if (currentDragState.type === "move") {
+							const track = prev.tracks.find((t) => t.id === currentDragState.trackId);
+							const clip = track?.clips.find((c) => c.id === currentDragState.clipId);
 
-						if (!clip) return prev;
+							if (!clip) return prev;
 
-						return handleClipPlacement(clip, currentDragState.trackId, prev);
+							return handleClipPlacement(clip, currentDragState.trackId, prev);
+						}
+						return prev;
 					});
 				}
 
@@ -600,7 +640,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				window.removeEventListener("mousemove", handleMouseMove);
 				window.removeEventListener("mouseup", handleMouseUp);
 			};
-		}, [!!dragState, pixelsPerSecond, calculateSnappedTime, handleClipPlacement]);
+		}, [!!dragState, pixelsPerSecond, calculateSnappedTime, handleClipPlacement, updateTimelineState]);
 
 		const timelineStateRef = useRef(timelineState);
 		timelineStateRef.current = timelineState;
@@ -726,7 +766,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 		const handleDeleteClip = useCallback(() => {
 			if (selectedClips.length === 0) return;
 
-			setTimelineState((prev) => {
+			updateTimelineState((prev) => {
 				const newState = {
 					...prev,
 					tracks: prev.tracks.map((t) => ({
@@ -748,7 +788,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 			setSelectedClips([]);
 			setLastSelectedClip(null);
 			onClipSelect?.(null);
-		}, [selectedClips, onClipSelect]);
+		}, [selectedClips, onClipSelect, updateTimelineState]);
 
 		const handleCutClips = useCallback(() => {
 			if (selectedClips.length === 0) return;
@@ -764,7 +804,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
 			setClipboard(clipsToClip);
 
-			setTimelineState((prev) => {
+			updateTimelineState((prev) => {
 				const newState = {
 					...prev,
 					tracks: prev.tracks.map((t) => ({
@@ -786,7 +826,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 			setSelectedClips([]);
 			setLastSelectedClip(null);
 			onClipSelect?.(null);
-		}, [selectedClips, timelineState, onClipSelect]);
+		}, [selectedClips, timelineState, onClipSelect, updateTimelineState]);
 
 		const handleCopyClips = useCallback(() => {
 			if (selectedClips.length === 0) return;
@@ -811,7 +851,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
 			const newClipIds: Array<{ clipId: string; trackId: string }> = [];
 
-			setTimelineState((prev) => {
+			updateTimelineState((prev) => {
 				let newState = {
 					...prev,
 					tracks: prev.tracks.map((t) => ({
@@ -848,7 +888,27 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 			if (newClipIds.length > 0) {
 				setLastSelectedClip(newClipIds[0]);
 			}
-		}, [clipboard, currentTimeRef, handleClipPlacement]);
+		}, [clipboard, currentTimeRef, handleClipPlacement, updateTimelineState]);
+
+		const handleUndo = useCallback(() => {
+			const previousState = historyStore.undo();
+			if (previousState) {
+				setTimelineState(previousState);
+				setSelectedClips([]);
+				setLastSelectedClip(null);
+				onClipSelect?.(null);
+			}
+		}, [onClipSelect]);
+
+		const handleRedo = useCallback(() => {
+			const nextState = historyStore.redo();
+			if (nextState) {
+				setTimelineState(nextState);
+				setSelectedClips([]);
+				setLastSelectedClip(null);
+				onClipSelect?.(null);
+			}
+		}, [onClipSelect]);
 
 		const handleZoomIn = useCallback(() => {
 			setPixelsPerSecond((prev) => Math.min(prev + 10, 200));
@@ -1055,7 +1115,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 									},
 							  };
 
-					setTimelineState((prev) => {
+					updateTimelineState((prev) => {
 						const newState = {
 							...prev,
 							tracks: prev.tracks.map((t) => ({
@@ -1079,7 +1139,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					console.error("Error handling media drop:", err);
 				}
 			},
-			[pixelsPerSecond, timelineState.duration, handleClipPlacement]
+			[pixelsPerSecond, timelineState.duration, handleClipPlacement, updateTimelineState]
 		);
 
 		const handleMediaDragLeave = useCallback(() => {
@@ -1104,7 +1164,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				const frameTime = 1 / fps;
 				const clickTime = Math.round(mouseTime / frameTime) * frameTime;
 
-				setTimelineState((prev) => {
+				updateTimelineState((prev) => {
 					const newState = {
 						...prev,
 						tracks: prev.tracks.map((t) => ({
@@ -1161,7 +1221,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					return newState;
 				});
 			},
-			[toolMode, pixelsPerSecond]
+			[toolMode, pixelsPerSecond, updateTimelineState]
 		);
 
 		useEffect(() => {
@@ -1179,6 +1239,12 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				} else if (e.key === "b" || e.key === "B") {
 					e.preventDefault();
 					setToolMode("blade");
+				} else if (e.key === "t" || e.key === "T") {
+					e.preventDefault();
+					setTransformMode((prev) => (prev === "transform" ? null : "transform"));
+				} else if (e.key === "c" && !e.ctrlKey) {
+					e.preventDefault();
+					setTransformMode((prev) => (prev === "crop" ? null : "crop"));
 				} else if (e.key === "n" || e.key === "N") {
 					e.preventDefault();
 					setIsSnappingEnabled((prev) => !prev);
@@ -1197,6 +1263,12 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				} else if (e.ctrlKey && e.key === "v") {
 					e.preventDefault();
 					handlePasteClips();
+				} else if (e.ctrlKey && e.key === "z") {
+					e.preventDefault();
+					handleUndo();
+				} else if (e.ctrlKey && e.key === "y") {
+					e.preventDefault();
+					handleRedo();
 				} else if (e.key === "Backspace" || e.key === "Delete") {
 					if (selectedClips.length > 0) {
 						handleDeleteClip();
@@ -1217,6 +1289,8 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 			handleCutClips,
 			handleCopyClips,
 			handlePasteClips,
+			handleUndo,
+			handleRedo,
 			handleZoomIn,
 			handleZoomOut,
 			handlePlayPause,
@@ -1240,6 +1314,22 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 			scrollContainer.addEventListener("wheel", handleWheel, { passive: false });
 			return () => scrollContainer.removeEventListener("wheel", handleWheel);
 		}, []);
+
+		useEffect(() => {
+			if (!showTransformMenu) return;
+
+			const handleClickOutside = (e: MouseEvent) => {
+				setShowTransformMenu(false);
+			};
+
+			setTimeout(() => {
+				document.addEventListener("click", handleClickOutside);
+			}, 0);
+
+			return () => {
+				document.removeEventListener("click", handleClickOutside);
+			};
+		}, [showTransformMenu]);
 
 		useEffect(() => {
 			const scrollContainer = scrollContainerRef.current;
@@ -1291,6 +1381,55 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 							>
 								<Scissors size={16} />
 							</button>
+							<div className="relative">
+								<button
+									onClick={() => {
+										if (transformMode) {
+											setTransformMode(null);
+											setShowTransformMenu(false);
+										} else {
+											setTransformMode("transform");
+										}
+									}}
+									className={`p-1.5 rounded ${
+										transformMode ? "bg-blue-600 text-white" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+									}`}
+									title="Transform Mode"
+								>
+									{transformMode === "crop" ? <Crop size={16} /> : <Square size={16} />}
+								</button>
+								<button
+									onClick={() => setShowTransformMenu(!showTransformMenu)}
+									className="p-1.5 rounded text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+									title="Transform options"
+								>
+									<ChevronDown size={12} />
+								</button>
+								{showTransformMenu && (
+									<div className="absolute top-full left-0 mt-1 bg-[#2a2a2a] border border-zinc-700 rounded shadow-lg z-50 min-w-[120px]">
+										<button
+											onClick={() => {
+												setTransformMode("transform");
+												setShowTransformMenu(false);
+											}}
+											className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+										>
+											<Square size={14} />
+											Transform
+										</button>
+										<button
+											onClick={() => {
+												setTransformMode("crop");
+												setShowTransformMenu(false);
+											}}
+											className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+										>
+											<Crop size={14} />
+											Crop
+										</button>
+									</div>
+								)}
+							</div>
 						</div>
 						<div className="w-px h-6 bg-zinc-700" />
 						<button
@@ -1302,6 +1441,29 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 						>
 							<Magnet size={16} />
 						</button>
+						<div className="w-px h-6 bg-zinc-700" />
+						<div className="flex items-center gap-1">
+							<button
+								onClick={handleUndo}
+								disabled={!canUndo}
+								className={`p-1.5 rounded ${
+									canUndo ? "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200" : "text-zinc-600 cursor-not-allowed"
+								}`}
+								title="Undo (Ctrl+Z)"
+							>
+								<Undo2 size={16} />
+							</button>
+							<button
+								onClick={handleRedo}
+								disabled={!canRedo}
+								className={`p-1.5 rounded ${
+									canRedo ? "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200" : "text-zinc-600 cursor-not-allowed"
+								}`}
+								title="Redo (Ctrl+Y)"
+							>
+								<Redo2 size={16} />
+							</button>
+						</div>
 					</div>
 					<div className="flex items-center gap-2">
 						<div className="flex items-center gap-1">
