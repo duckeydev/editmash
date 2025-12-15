@@ -93,7 +93,7 @@ function TimelineClip({
 		<div
 			className={`absolute h-full select-none border-2 rounded overflow-hidden ${
 				clip.type === "video" ? "bg-purple-600" : "bg-green-600"
-			} ${isSelected ? "border-red-500" : "border-zinc-800"}`}
+			} ${isSelected ? "border-primary" : "border-border"}`}
 			style={{
 				left: `${left}px`,
 				width: `${width}px`,

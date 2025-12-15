@@ -51,8 +51,8 @@ function TimelineTrack({
 	};
 	return (
 		<div
-			className={`h-[2.5rem] relative cursor-crosshair transition-colors border-b border-zinc-800 ${
-				isHovered && draggedClipId ? "bg-[#252525]" : "bg-[#1a1a1a]"
+			className={`h-[2.5rem] relative cursor-crosshair transition-colors border-b border-border ${
+				isHovered && draggedClipId ? "bg-accent" : "bg-background"
 			}`}
 			onClick={(e) => {
 				if (toolMode === "blade") {
@@ -69,7 +69,7 @@ function TimelineTrack({
 		>
 			{dragPreview && dragPreview.trackId === track.id && (
 				<div
-					className={`absolute h-full select-none border-2 rounded overflow-hidden opacity-40 border-zinc-800 ${
+					className={`absolute h-full select-none border-2 rounded overflow-hidden opacity-40 border-border ${
 						dragPreview.type === "video" ? "bg-purple-600" : "bg-green-600"
 					}`}
 					style={{

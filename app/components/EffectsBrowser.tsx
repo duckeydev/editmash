@@ -38,7 +38,7 @@ export default function EffectsBrowser() {
 	return (
 		<ResizablePanelGroup direction="horizontal" className="h-full">
 			<ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
-				<div className="h-full bg-[#1e1e1e] border-r border-zinc-800">
+				<div className="h-full bg-card border-r border-border">
 					<div className="p-2">
 						<div className="space-y-1">
 							{categories.map((category) => (
@@ -46,7 +46,7 @@ export default function EffectsBrowser() {
 									key={category}
 									onClick={() => setActiveCategory(category)}
 									className={`w-full px-3 py-2 text-left text-sm rounded transition-colors ${
-										activeCategory === category ? "bg-blue-600/20 text-blue-400" : "text-zinc-300 hover:bg-zinc-800/50"
+										activeCategory === category ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-accent"
 									}`}
 								>
 									{category}
@@ -60,21 +60,21 @@ export default function EffectsBrowser() {
 			<ResizableHandle />
 
 			<ResizablePanel defaultSize={75}>
-				<div className="h-full bg-[#1a1a1a] overflow-y-auto p-4">
+				<div className="h-full bg-background overflow-y-auto p-4">
 					<div className="space-y-2">
 						{effects.map((effect) => {
 							const IconComponent = effect.icon;
 							return (
 								<div
 									key={effect.id}
-									className="flex items-center w-full bg-[#2a2a2a] border border-[#3a3a3a] hover:border-[#4a4a4a] rounded-md cursor-pointer group h-11"
+									className="flex items-center w-full bg-card border border-border hover:border-muted-foreground/50 rounded-md cursor-pointer group h-11"
 									draggable
 								>
-									<div className="flex items-center justify-center w-11 h-11 flex-shrink-0 border-r border-[#3a3a3a]">
-										<IconComponent size={18} strokeWidth={1.5} className="text-zinc-500 group-hover:text-zinc-400" />
+									<div className="flex items-center justify-center w-11 h-11 flex-shrink-0 border-r border-border">
+										<IconComponent size={18} strokeWidth={1.5} className="text-muted-foreground group-hover:text-foreground" />
 									</div>
 
-									<div className="flex-1 px-3 text-[13px] font-medium text-zinc-400 group-hover:text-zinc-300 tracking-tight">
+									<div className="flex-1 px-3 text-[13px] font-medium text-muted-foreground group-hover:text-foreground tracking-tight">
 										{effect.name}
 									</div>
 								</div>

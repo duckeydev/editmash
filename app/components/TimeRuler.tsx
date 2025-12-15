@@ -72,12 +72,12 @@ function TimeRuler({ duration, pixelsPerSecond, onSeek }: TimeRulerProps) {
 	}, [duration, pixelsPerSecond]);
 
 	return (
-		<div className="h-8 bg-[#1e1e1e] border-b border-zinc-800 relative cursor-pointer select-none" onMouseDown={handleMouseDown}>
+		<div className="h-8 bg-card border-b border-border relative cursor-pointer select-none" onMouseDown={handleMouseDown}>
 			<div className="h-full relative">
 				{ticks.map((tick, idx) => (
 					<div key={idx} className="absolute top-0" style={{ left: `${tick.time * pixelsPerSecond}px` }}>
-						<div className={`w-px ${tick.isSecond ? "h-4 bg-zinc-500" : "h-2 bg-zinc-700"}`} />
-						{tick.label && <span className="absolute top-4 left-1 text-[10px] text-zinc-400">{tick.label}</span>}
+						<div className={`w-px ${tick.isSecond ? "h-4 bg-muted-foreground" : "h-2 bg-muted-foreground/40"}`} />
+						{tick.label && <span className="absolute top-4 left-1 text-[10px] text-muted-foreground">{tick.label}</span>}
 					</div>
 				))}
 			</div>

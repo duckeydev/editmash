@@ -183,13 +183,13 @@ export default function MediaBrowser() {
 
 			{contextMenu && (
 				<div
-					className="fixed z-[9999] bg-[#2a2a2a] border border-zinc-700 rounded shadow-lg py-1 min-w-[160px]"
+					className="fixed z-[9999] bg-popover border border-border rounded shadow-lg py-1 min-w-[160px]"
 					style={{ left: contextMenu.x, top: contextMenu.y }}
 					onClick={(e) => e.stopPropagation()}
 				>
 					<button
 						onClick={handleImportClick}
-						className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors"
+						className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-accent transition-colors"
 					>
 						Import Media...
 					</button>
@@ -197,52 +197,10 @@ export default function MediaBrowser() {
 			)}
 
 			<ResizablePanelGroup direction="horizontal" className="h-full">
-				<ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
-					<div className="h-full bg-[#1e1e1e] border-r border-zinc-800">
-						<div className="p-2">
-							<button className="w-full px-4 py-2 text-left text-sm text-zinc-300 bg-zinc-800/50 hover:bg-zinc-700/50 rounded transition-colors">
-								Master
-							</button>
-						</div>
-
-						<ResizablePanelGroup direction="vertical">
-							<ResizablePanel defaultSize={50} minSize={5}>
-								<div className="h-full bg-[#1a1a1a] p-2">{/* Empty panel */}</div>
-							</ResizablePanel>
-
-							<ResizableHandle />
-
-							<ResizablePanel defaultSize={50} minSize={5}>
-								<div className="h-full flex flex-col bg-[#1e1e1e]">
-									<div className="px-3 py-2 text-xs font-medium text-zinc-400 border-b border-zinc-800">Power Bins</div>
-									<div className="flex-1 overflow-y-auto p-2">
-										<div className="space-y-1">
-											{folders.map((folder) => (
-												<button
-													key={folder}
-													onClick={() => setActiveFolder(folder)}
-													className={`w-full px-3 py-2 text-left text-sm rounded transition-colors flex items-center gap-2 ${
-														activeFolder === folder ? "bg-blue-600/20 text-blue-400" : "text-zinc-300 hover:bg-zinc-800/50"
-													}`}
-												>
-													<Folder className="flex-shrink-0" size={16} />
-													{folder}
-												</button>
-											))}
-										</div>
-									</div>
-								</div>
-							</ResizablePanel>
-						</ResizablePanelGroup>
-					</div>
-				</ResizablePanel>
-
-				<ResizableHandle />
-
-				<ResizablePanel defaultSize={75}>
-					<div className="h-full bg-[#1a1a1a] overflow-y-auto p-4" onContextMenu={handleContextMenu}>
+				<ResizablePanel defaultSize={10}>
+					<div className="h-full bg-background overflow-y-auto p-4" onContextMenu={handleContextMenu}>
 						{mediaItems.length === 0 ? (
-							<div className="flex flex-col items-center justify-center h-full text-zinc-500">
+							<div className="flex flex-col items-center justify-center h-full text-muted-foreground">
 								<Image size={64} strokeWidth={1.5} className="mb-4" />
 								<p className="text-sm">No media imported</p>
 								<p className="text-xs mt-1">Right-click to import media</p>
@@ -263,16 +221,13 @@ export default function MediaBrowser() {
 											currentDragItem = null;
 										}}
 									>
-										<div className="w-[155px] h-[90px] bg-zinc-800 rounded overflow-hidden mb-2 hover:ring-2 hover:ring-blue-500 flex items-center justify-center relative">
+										<div className="w-[155px] h-[90px] bg-secondary rounded overflow-hidden mb-2 hover:ring-2 hover:ring-primary flex items-center justify-center relative">
 											{item.isUploading && (
 												<div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10 p-2">
 													<div className="text-xs text-white mb-2">{item.uploadProgress ? `${item.uploadProgress}%` : "Uploading..."}</div>
 													{item.uploadProgress !== undefined && (
-														<div className="w-full h-1 bg-zinc-700 rounded overflow-hidden">
-															<div
-																className="h-full bg-blue-500 transition-all duration-300"
-																style={{ width: `${item.uploadProgress}%` }}
-															/>
+														<div className="w-full h-1 bg-secondary rounded overflow-hidden">
+															<div className="h-full bg-primary transition-all duration-300" style={{ width: `${item.uploadProgress}%` }} />
 														</div>
 													)}
 												</div>
@@ -285,12 +240,12 @@ export default function MediaBrowser() {
 											{item.type === "video" && item.thumbnail ? (
 												<img src={item.thumbnail} alt={item.name} className="w-full h-full object-cover" />
 											) : item.type === "video" ? (
-												<Video size={32} strokeWidth={1.5} className="text-zinc-600" />
+												<Video size={32} strokeWidth={1.5} className="text-muted-foreground" />
 											) : (
-												<Music size={32} strokeWidth={1.5} className="text-zinc-600" />
+												<Music size={32} strokeWidth={1.5} className="text-muted-foreground" />
 											)}
 										</div>
-										<p className="text-sm text-zinc-400 group-hover:text-zinc-200 text-center truncate px-1">{item.name}</p>
+										<p className="text-sm text-muted-foreground group-hover:text-foreground text-center truncate px-1">{item.name}</p>
 									</div>
 								))}
 							</div>

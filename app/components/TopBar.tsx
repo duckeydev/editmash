@@ -51,7 +51,7 @@ export default function TopBar({ showMedia, showEffects, onToggleMedia, onToggle
 	};
 
 	return (
-		<div className="fixed top-0 left-0 right-0 z-50 flex h-8 items-center justify-between bg-[#1a1a1a] px-2 text-[13px] text-zinc-300 select-none border-b border-zinc-800">
+		<div className="fixed top-0 left-0 right-0 z-50 flex h-8 items-center justify-between bg-background px-2 text-[13px] text-foreground select-none border-b border-border">
 			<div className="flex items-center gap-4 relative">
 				<div className="flex items-center relative">
 					{menuItems.map((item, index) => {
@@ -60,7 +60,7 @@ export default function TopBar({ showMedia, showEffects, onToggleMedia, onToggle
 							<div key={item} className="relative">
 								<button
 									onMouseEnter={() => setActiveMenu(item)}
-									className={`px-3 py-1 transition-colors ${activeMenu === item ? "bg-zinc-700/50" : "hover:bg-zinc-700/50"} ${
+									className={`px-3 py-1 transition-colors ${activeMenu === item ? "bg-accent" : "hover:bg-accent"} ${
 										index === 0 ? "font-medium" : ""
 									}`}
 								>
@@ -69,13 +69,13 @@ export default function TopBar({ showMedia, showEffects, onToggleMedia, onToggle
 
 								{activeMenu === item && menuContent && (
 									<div
-										className="absolute top-full left-0 mt-0 bg-[#2a2a2a] border border-zinc-700 rounded shadow-lg min-w-[180px] py-1 z-50"
+										className="absolute top-full left-0 mt-0 bg-popover border border-border rounded shadow-lg min-w-[180px] py-1 z-50"
 										onMouseEnter={() => setActiveMenu(item)}
 										onMouseLeave={() => setActiveMenu(null)}
 									>
 										{menuContent.map((menuItem, idx) => {
 											if (menuItem.type === "separator") {
-												return <div key={idx} className="h-px bg-zinc-700 my-1" />;
+												return <div key={idx} className="h-px bg-border my-1" />;
 											} else if (menuItem.type === "checkbox" && "checked" in menuItem) {
 												return (
 													<button
@@ -83,9 +83,9 @@ export default function TopBar({ showMedia, showEffects, onToggleMedia, onToggle
 														onClick={() => {
 															menuItem.action?.();
 														}}
-														className="w-full text-left px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors flex items-center gap-2"
+														className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-2"
 													>
-														<span className="w-3 h-3 border border-zinc-500 rounded-sm flex items-center justify-center">
+														<span className="w-3 h-3 border border-muted-foreground rounded-sm flex items-center justify-center">
 															{menuItem.checked && <Check size={10} strokeWidth={2} />}
 														</span>
 														{menuItem.label}
@@ -99,7 +99,7 @@ export default function TopBar({ showMedia, showEffects, onToggleMedia, onToggle
 															menuItem.action?.();
 															setActiveMenu(null);
 														}}
-														className="w-full text-left px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors"
+														className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent transition-colors"
 													>
 														{menuItem.label}
 													</button>
@@ -117,7 +117,7 @@ export default function TopBar({ showMedia, showEffects, onToggleMedia, onToggle
 				{onRender && (
 					<button
 						onClick={onRender}
-						className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-xs font-medium"
+						className="flex items-center gap-1.5 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded transition-colors text-xs font-medium"
 					>
 						<Video size={14} />
 						Render

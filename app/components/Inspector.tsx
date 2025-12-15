@@ -35,8 +35,8 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 
 	if (!selectedClips || selectedClips.length === 0) {
 		return (
-			<div className="h-full bg-[#1e1e1e] border-l border-zinc-800 flex items-center justify-center">
-				<p className="text-sm text-zinc-500">No clip selected</p>
+			<div className="h-full bg-card border-l border-border flex items-center justify-center">
+				<p className="text-sm text-muted-foreground">No clip selected</p>
 			</div>
 		);
 	}
@@ -130,26 +130,26 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 	const isAudioClip = clip && clip.type === "audio" && "properties" in clip;
 
 	return (
-		<div className="h-full bg-[#1e1e1e] border-l border-zinc-800 flex flex-col">
+		<div className="h-full bg-card border-l border-border flex flex-col">
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-				<TabsList className="w-full grid grid-cols-3 rounded-none border-b border-zinc-800 bg-transparent h-auto p-0">
+				<TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-transparent h-auto p-0">
 					<TabsTrigger
 						value="video"
 						disabled={!clip || clip.type !== "video"}
-						className="rounded-none text-zinc-200 data-[state=active]:bg-[#2a2a2a] data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed py-2"
+						className="rounded-none text-secondary-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary disabled:opacity-50 disabled:cursor-not-allowed py-2"
 					>
 						Video
 					</TabsTrigger>
 					<TabsTrigger
 						value="audio"
 						disabled={!clip || clip.type !== "audio"}
-						className="rounded-none text-zinc-200 data-[state=active]:bg-[#2a2a2a] data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed py-2"
+						className="rounded-none text-secondary-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary disabled:opacity-50 disabled:cursor-not-allowed py-2"
 					>
 						Audio
 					</TabsTrigger>
 					<TabsTrigger
 						value="info"
-						className="rounded-none text-zinc-200 data-[state=active]:bg-[#2a2a2a] data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500 py-2"
+						className="rounded-none text-secondary-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary py-2"
 					>
 						Info
 					</TabsTrigger>
@@ -159,13 +159,13 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 					<TabsContent value="video" className="p-3 space-y-2 mt-0">
 						{isVideoClip ? (
 							<>
-								<div className="border border-zinc-800 rounded">
+								<div className="border border-border rounded">
 									<div
 										role="button"
 										tabIndex={0}
 										onClick={() => setTransformExpanded(!transformExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setTransformExpanded(!transformExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800/50"
+										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
 									>
 										<div className="flex items-center gap-2">
 											{transformExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -176,7 +176,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 												e.stopPropagation();
 												resetTransform();
 											}}
-											className="p-1 hover:bg-zinc-700 rounded"
+											className="p-1 hover:bg-muted rounded"
 											title="Reset all transform properties"
 										>
 											<RotateCcw size={14} />
@@ -184,12 +184,12 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 									</div>
 
 									{transformExpanded && (
-										<div className="px-3 pb-2 space-y-2 border-t border-zinc-800">
+										<div className="px-3 pb-2 space-y-2 border-t border-border">
 											{/* Zoom */}
 											{clip && clip.type === "video" && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Zoom</Label>
-													<span className="text-zinc-600 text-xs">X</span>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Zoom</Label>
+													<span className="text-muted-foreground/60 text-xs">X</span>
 													<DragNumberInput
 														value={clip.properties.zoom.x}
 														onChange={(newValue) => {
@@ -215,11 +215,11 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 																},
 															});
 														}}
-														className={`p-1 rounded ${clip.properties.zoom.linked ? "text-blue-500" : "text-zinc-500"} hover:bg-zinc-800`}
+														className={`p-1 rounded ${clip.properties.zoom.linked ? "text-primary" : "text-muted-foreground"} hover:bg-muted`}
 													>
 														{clip.properties.zoom.linked ? <Link2 size={14} /> : <Link2Off size={14} />}
 													</button>
-													<span className="text-zinc-600 text-xs">Y</span>
+													<span className="text-muted-foreground/60 text-xs">Y</span>
 													<DragNumberInput
 														value={clip.properties.zoom.y}
 														onChange={(newValue) => {
@@ -242,8 +242,8 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Position */}
 											{clip && clip.type === "video" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Position</Label>
-													<span className="text-zinc-600 text-xs">X</span>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Position</Label>
+													<span className="text-muted-foreground/60 text-xs">X</span>
 													<DragNumberInput
 														value={clip.properties.position.x}
 														onChange={(newValue) => {
@@ -257,7 +257,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														step={1}
 														className="w-14"
 													/>
-													<span className="text-zinc-600 text-xs">Y</span>
+													<span className="text-muted-foreground/60 text-xs">Y</span>
 													<DragNumberInput
 														value={clip.properties.position.y}
 														onChange={(newValue) => {
@@ -277,7 +277,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Rotation Angle */}
 											{clip && clip.type === "video" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Rotation</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Rotation</Label>
 													<Slider
 														value={[clip.properties.rotation]}
 														onValueChange={([value]) => {
@@ -304,7 +304,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Flip */}
 											{clip && clip.type === "video" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Flip</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Flip</Label>
 													<button
 														onClick={() => {
 															updateVideoProperty({
@@ -316,8 +316,8 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														}}
 														className={`p-2 rounded border ${
 															clip.properties.flip.horizontal
-																? "bg-blue-500/20 border-blue-500 text-blue-400"
-																: "border-zinc-700 text-zinc-400 hover:bg-zinc-800"
+																? "bg-primary/20 border-primary text-primary"
+																: "border-border text-muted-foreground hover:bg-muted"
 														}`}
 														title="Flip Horizontal"
 													>
@@ -334,8 +334,8 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														}}
 														className={`p-2 rounded border ${
 															clip.properties.flip.vertical
-																? "bg-blue-500/20 border-blue-500 text-blue-400"
-																: "border-zinc-700 text-zinc-400 hover:bg-zinc-800"
+																? "bg-primary/20 border-primary text-primary"
+																: "border-border text-muted-foreground hover:bg-muted"
 														}`}
 														title="Flip Vertical"
 													>
@@ -348,13 +348,13 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 								</div>
 
 								{/* Cropping Panel */}
-								<div className="border border-zinc-800 rounded">
+								<div className="border border-border rounded">
 									<div
 										role="button"
 										tabIndex={0}
 										onClick={() => setCroppingExpanded(!croppingExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setCroppingExpanded(!croppingExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800/50"
+										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
 									>
 										<div className="flex items-center gap-2">
 											{croppingExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -365,7 +365,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 												e.stopPropagation();
 												resetCropping();
 											}}
-											className="p-1 hover:bg-zinc-700 rounded"
+											className="p-1 hover:bg-muted rounded"
 											title="Reset all cropping properties"
 										>
 											<RotateCcw size={14} />
@@ -373,11 +373,11 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 									</div>
 
 									{croppingExpanded && (
-										<div className="px-3 pb-2 space-y-2 border-t border-zinc-800">
+										<div className="px-3 pb-2 space-y-2 border-t border-border">
 											{/* Crop Left */}
 											{clip && clip.type === "video" && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Left</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Left</Label>
 													<Slider
 														value={[clip.properties.crop.left]}
 														onValueChange={([value]) => {
@@ -414,7 +414,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Right */}
 											{clip && clip.type === "video" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Right</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Right</Label>
 													<Slider
 														value={[clip.properties.crop.right]}
 														onValueChange={([value]) => {
@@ -451,7 +451,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Top */}
 											{clip && clip.type === "video" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Top</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Top</Label>
 													<Slider
 														value={[clip.properties.crop.top]}
 														onValueChange={([value]) => {
@@ -488,7 +488,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Bottom */}
 											{clip && clip.type === "video" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Bottom</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Bottom</Label>
 													<Slider
 														value={[clip.properties.crop.bottom]}
 														onValueChange={([value]) => {
@@ -526,13 +526,13 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 								</div>
 
 								{/* Speed Panel */}
-								<div className="border border-zinc-800 rounded">
+								<div className="border border-border rounded">
 									<div
 										role="button"
 										tabIndex={0}
 										onClick={() => setSpeedExpanded(!speedExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSpeedExpanded(!speedExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800/50"
+										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
 									>
 										<div className="flex items-center gap-2">
 											{speedExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -543,7 +543,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 												e.stopPropagation();
 												resetSpeed();
 											}}
-											className="p-1 hover:bg-zinc-700 rounded"
+											className="p-1 hover:bg-muted rounded"
 											title="Reset all speed properties"
 										>
 											<RotateCcw size={14} />
@@ -551,11 +551,11 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 									</div>
 
 									{speedExpanded && (
-										<div className="px-3 pb-2 space-y-2 border-t border-zinc-800">
+										<div className="px-3 pb-2 space-y-2 border-t border-border">
 											{/* Speed */}
 											{clip && clip.type === "video" && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Speed</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Speed</Label>
 													<DragNumberInput
 														value={clip.properties.speed * 100}
 														onChange={(newValue) => {
@@ -579,14 +579,14 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														step={1}
 														className="flex-1"
 													/>
-													<span className="text-zinc-600 text-xs">%</span>
-												</div>
-											)}
+												<span className="text-muted-foreground/60 text-xs">%</span>
+											</div>
+										)}
 
-											{/* Freeze Frame */}
-											{clip && clip.type === "video" && (
-												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs flex-1">Freeze Frame</Label>
+										{/* Freeze Frame */}
+										{clip && clip.type === "video" && (
+											<div className="flex items-center gap-2">
+												<Label className="text-muted-foreground text-xs flex-1">Freeze Frame</Label>
 													<Checkbox
 														checked={clip.properties.freezeFrame}
 														onCheckedChange={(checked) => {
@@ -604,20 +604,20 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 								</div>
 							</>
 						) : (
-							<p className="text-sm text-zinc-500">Select a video clip to edit properties</p>
+							<p className="text-sm text-muted-foreground">Select a video clip to edit properties</p>
 						)}
 					</TabsContent>
 
 					<TabsContent value="audio" className="p-3 space-y-2 mt-0">
 						{isAudioClip ? (
 							<>
-								<div className="border border-zinc-800 rounded">
+								<div className="border border-border rounded">
 									<div
 										role="button"
 										tabIndex={0}
 										onClick={() => setAudioExpanded(!audioExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setAudioExpanded(!audioExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800/50"
+										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent"
 									>
 										<div className="flex items-center gap-2">
 											{audioExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -628,7 +628,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 												e.stopPropagation();
 												resetAudio();
 											}}
-											className="p-1 hover:bg-zinc-700 rounded"
+											className="p-1 hover:bg-accent rounded"
 											title="Reset all audio properties"
 										>
 											<RotateCcw size={14} />
@@ -636,10 +636,10 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 									</div>
 
 									{audioExpanded && (
-										<div className="px-3 pb-2 space-y-2 border-t border-zinc-800">
+										<div className="px-3 pb-2 space-y-2 border-t border-border">
 											{clip && clip.type === "audio" && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Volume</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Volume</Label>
 													<Slider
 														value={[clip.properties.volume <= 0 ? -60 : 20 * Math.log10(clip.properties.volume)]}
 														onValueChange={([value]) => {
@@ -666,14 +666,14 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														step={0.1}
 														className="w-14"
 													/>
-													<span className="text-zinc-600 text-xs">dB</span>
+													<span className="text-muted-foreground/60 text-xs">dB</span>
 												</div>
 											)}
 
 											{/* Pan */}
 											{clip && clip.type === "audio" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Pan</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Pan</Label>
 													<Slider
 														value={[clip.properties.pan * 100]}
 														onValueChange={([value]) => {
@@ -700,7 +700,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Pitch */}
 											{clip && clip.type === "audio" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Pitch</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Pitch</Label>
 													<Slider
 														value={[clip.properties.pitch]}
 														onValueChange={([value]) => {
@@ -721,13 +721,13 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														step={0.1}
 														className="w-14"
 													/>
-													<span className="text-zinc-600 text-xs">ST</span>
+													<span className="text-muted-foreground/60 text-xs">ST</span>
 												</div>
 											)}
 
 											{clip && clip.type === "audio" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-zinc-500 text-xs w-16 flex-shrink-0">Speed</Label>
+													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Speed</Label>
 													<DragNumberInput
 														value={Number((clip.properties.speed * 100).toFixed(1))}
 														onChange={(newValue) => {
@@ -751,7 +751,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														step={0.1}
 														className="flex-1"
 													/>
-													<span className="text-zinc-600 text-xs">%</span>
+													<span className="text-muted-foreground/60 text-xs">%</span>
 												</div>
 											)}
 										</div>
@@ -759,34 +759,34 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 								</div>
 							</>
 						) : (
-							<p className="text-sm text-zinc-500">Select an audio clip to edit properties</p>
+							<p className="text-sm text-muted-foreground">Select an audio clip to edit properties</p>
 						)}
 					</TabsContent>
 
 					<TabsContent value="info" className="p-4 space-y-4 mt-0">
 						{clip && (
 							<div>
-								<h3 className="text-xs font-semibold text-zinc-400 uppercase mb-2">Clip Info</h3>
+								<h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Clip Info</h3>
 								<div className="space-y-2 text-sm">
 									<div className="flex justify-between">
-										<span className="text-zinc-500">Type:</span>
-										<span className="text-zinc-200 capitalize">{clip.type}</span>
+										<span className="text-muted-foreground">Type:</span>
+										<span className="text-foreground capitalize">{clip.type}</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-zinc-500">Source:</span>
-										<span className="text-zinc-200 truncate ml-2">{clip.src.split("/").pop()}</span>
+										<span className="text-muted-foreground">Source:</span>
+										<span className="text-foreground truncate ml-2">{clip.src.split("/").pop()}</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-zinc-500">Start Time:</span>
-										<span className="text-zinc-200">{clip.startTime.toFixed(2)}s</span>
+										<span className="text-muted-foreground">Start Time:</span>
+										<span className="text-foreground">{clip.startTime.toFixed(2)}s</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-zinc-500">Duration:</span>
-										<span className="text-zinc-200">{clip.duration.toFixed(2)}s</span>
+										<span className="text-muted-foreground">Duration:</span>
+										<span className="text-foreground">{clip.duration.toFixed(2)}s</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-zinc-500">End Time:</span>
-										<span className="text-zinc-200">{(clip.startTime + clip.duration).toFixed(2)}s</span>
+										<span className="text-muted-foreground">End Time:</span>
+										<span className="text-foreground">{(clip.startTime + clip.duration).toFixed(2)}s</span>
 									</div>
 								</div>
 							</div>

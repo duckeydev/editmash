@@ -1268,22 +1268,22 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 		const timelineWidth = timelineState.duration * pixelsPerSecond;
 
 		return (
-			<div className="h-full bg-[#1a1a1a] border-t border-zinc-800 flex flex-col">
-				<div className="h-10 bg-[#1e1e1e] border-b border-zinc-800 flex items-center justify-between px-4">
+			<div className="h-full bg-background border-t border-border flex flex-col">
+				<div className="h-10 bg-card border-b border-border flex items-center justify-between px-4">
 					<div className="flex items-center gap-3">
 						<button
 							onClick={handlePlayPause}
-							className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400 hover:text-zinc-200"
+							className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
 							title={isPlaying ? "Pause" : "Play"}
 						>
 							{isPlaying ? <Pause size={16} /> : <Play size={16} />}
 						</button>
-						<div className="w-px h-6 bg-zinc-700" />
+						<div className="w-px h-6 bg-border" />
 						<div className="flex items-center gap-1">
 							<button
 								onClick={() => setToolMode("select")}
 								className={`p-1.5 rounded ${
-									toolMode === "select" ? "bg-blue-600 text-white" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+									toolMode === "select" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
 								}`}
 								title="Select Mode (A)"
 							>
@@ -1292,7 +1292,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 							<button
 								onClick={() => setToolMode("blade")}
 								className={`p-1.5 rounded ${
-									toolMode === "blade" ? "bg-blue-600 text-white" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+									toolMode === "blade" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
 								}`}
 								title="Blade Mode (B)"
 							>
@@ -1309,7 +1309,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 										}
 									}}
 									className={`p-1.5 rounded ${
-										transformMode ? "bg-blue-600 text-white" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+										transformMode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
 									}`}
 									title="Transform Mode"
 								>
@@ -1317,19 +1317,19 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 								</button>
 								<button
 									onClick={() => setShowTransformMenu(!showTransformMenu)}
-									className="p-1.5 rounded text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+									className="p-1.5 rounded text-muted-foreground hover:bg-accent hover:text-foreground"
 									title="Transform options"
 								>
 									<ChevronDown size={12} />
 								</button>
 								{showTransformMenu && (
-									<div className="absolute top-full left-0 mt-1 bg-[#2a2a2a] border border-zinc-700 rounded shadow-lg z-50 min-w-[120px]">
+									<div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded shadow-lg z-50 min-w-[120px]">
 										<button
 											onClick={() => {
 												setTransformMode("transform");
 												setShowTransformMenu(false);
 											}}
-											className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+											className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
 										>
 											<Square size={14} />
 											Transform
@@ -1339,7 +1339,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 												setTransformMode("crop");
 												setShowTransformMenu(false);
 											}}
-											className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+											className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
 										>
 											<Crop size={14} />
 											Crop
@@ -1348,23 +1348,23 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 								)}
 							</div>
 						</div>
-						<div className="w-px h-6 bg-zinc-700" />
+						<div className="w-px h-6 bg-border" />
 						<button
 							onClick={() => setIsSnappingEnabled(!isSnappingEnabled)}
 							className={`p-1.5 rounded ${
-								isSnappingEnabled ? "bg-blue-600 text-white" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+								isSnappingEnabled ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
 							}`}
 							title={isSnappingEnabled ? "Snapping Enabled (N)" : "Snapping Disabled (N)"}
 						>
 							<Magnet size={16} />
 						</button>
-						<div className="w-px h-6 bg-zinc-700" />
+						<div className="w-px h-6 bg-border" />
 						<div className="flex items-center gap-1">
 							<button
 								onClick={handleUndo}
 								disabled={!canUndo}
 								className={`p-1.5 rounded ${
-									canUndo ? "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200" : "text-zinc-600 cursor-not-allowed"
+									canUndo ? "text-muted-foreground hover:bg-accent hover:text-foreground" : "text-muted-foreground/40 cursor-not-allowed"
 								}`}
 								title="Undo (Ctrl+Z)"
 							>
@@ -1374,7 +1374,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 								onClick={handleRedo}
 								disabled={!canRedo}
 								className={`p-1.5 rounded ${
-									canRedo ? "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200" : "text-zinc-600 cursor-not-allowed"
+									canRedo ? "text-muted-foreground hover:bg-accent hover:text-foreground" : "text-muted-foreground/40 cursor-not-allowed"
 								}`}
 								title="Redo (Ctrl+Y)"
 							>
@@ -1384,11 +1384,11 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					</div>
 					<div className="flex items-center gap-2">
 						<div className="flex items-center gap-1">
-							<button onClick={handleZoomOut} className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-zinc-200" title="Zoom out">
+							<button onClick={handleZoomOut} className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground" title="Zoom out">
 								<ZoomOut size={16} />
 							</button>
-							<span className="text-xs text-zinc-500 w-12 text-center">{Math.round((pixelsPerSecond / 50) * 100)}%</span>
-							<button onClick={handleZoomIn} className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-zinc-200" title="Zoom in">
+							<span className="text-xs text-muted-foreground w-12 text-center">{Math.round((pixelsPerSecond / 50) * 100)}%</span>
+							<button onClick={handleZoomIn} className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground" title="Zoom in">
 								<ZoomIn size={16} />
 							</button>
 						</div>
@@ -1396,10 +1396,10 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				</div>
 
 				<div className="flex-1 flex overflow-hidden relative">
-					<div className="w-32 flex-shrink-0 bg-[#1e1e1e] border-r border-zinc-800 flex flex-col relative z-[70]">
-						<div className="absolute left-0 top-0 bottom-0 bg-[#1e1e1e] pointer-events-none" style={{ width: "calc(100% - 4px)" }} />
-						<div className="h-8 border-b border-zinc-800 flex items-center justify-center relative">
-							<span className="text-sm text-zinc-300 font-mono tabular-nums">
+					<div className="w-32 flex-shrink-0 bg-card border-r border-border flex flex-col relative z-[70]">
+						<div className="absolute left-0 top-0 bottom-0 bg-card pointer-events-none" style={{ width: "calc(100% - 4px)" }} />
+						<div className="h-8 border-b border-border flex items-center justify-center relative">
+							<span className="text-sm text-foreground font-mono tabular-nums">
 								{Math.floor(currentTime / 60)
 									.toString()
 									.padStart(2, "0")}
@@ -1414,10 +1414,10 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 							</span>
 						</div>
 						{timelineState.tracks.map((track) => (
-							<div key={track.id} className="h-[2.5rem] border-b border-zinc-800 flex items-center px-3 relative">
+							<div key={track.id} className="h-[2.5rem] border-b border-border flex items-center px-3 relative">
 								<div className="flex items-center gap-2">
 									<div className={`w-2 h-2 rounded-full ${track.type === "video" ? "bg-purple-500" : "bg-green-500"}`} />
-									<span className="text-sm text-zinc-300 font-medium">
+									<span className="text-sm text-foreground font-medium">
 										{track.type === "video" ? "Video" : "Audio"} {track.id.split("-")[1]}
 									</span>
 								</div>

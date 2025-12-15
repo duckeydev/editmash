@@ -47,20 +47,24 @@ const MainLayout = forwardRef<MainLayoutRef, MainLayoutProps>(({ showMedia, show
 		[onTimelineStateChange]
 	);
 
-	useImperativeHandle(ref, () => ({
-		loadTimeline: (state: TimelineState) => {
-			timelineRef.current?.loadTimeline(state);
-			setTimelineState(state);
-			onTimelineStateChange?.(state);
-		},
-	}), [onTimelineStateChange]);
+	useImperativeHandle(
+		ref,
+		() => ({
+			loadTimeline: (state: TimelineState) => {
+				timelineRef.current?.loadTimeline(state);
+				setTimelineState(state);
+				onTimelineStateChange?.(state);
+			},
+		}),
+		[onTimelineStateChange]
+	);
 
 	return (
-		<div className="h-screen pt-8 bg-[#0a0a0a]">
+		<div className="h-screen pt-8 bg-background">
 			<ResizablePanelGroup direction="horizontal" className="h-full">
 				{!noneVisible && (
 					<>
-						<ResizablePanel defaultSize={40} minSize={20} maxSize={60}>
+						<ResizablePanel defaultSize={25} minSize={20} maxSize={60}>
 							{bothVisible ? (
 								<ResizablePanelGroup direction="vertical">
 									<ResizablePanel defaultSize={50} minSize={20}>

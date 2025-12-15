@@ -111,8 +111,8 @@ export default function DragNumberInput({
 			onDoubleClick={handleDoubleClick}
 			disabled={disabled}
 			className={cn(
-				"w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-zinc-200 text-xs h-6 text-center",
-				"focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500",
+				"w-full bg-secondary border border-border rounded px-2 py-0.5 text-secondary-foreground text-xs h-6 text-center",
+				"focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring",
 				isDragging && "cursor-ew-resize select-none",
 				!isEditing && !isDragging && "cursor-ew-resize",
 				disabled && "opacity-50 cursor-not-allowed",

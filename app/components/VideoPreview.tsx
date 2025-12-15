@@ -649,7 +649,7 @@ export default function VideoPreview({
 	const displayRect = selectedVideoClip && transformMode ? getDisplayRect(selectedVideoClip.clip) : null;
 
 	return (
-		<div className="h-full bg-[#1a1a1a] flex flex-col">
+		<div className="h-full bg-background flex flex-col">
 			<div className="flex-1 flex items-center justify-center p-4">
 				<div ref={containerRef} className="relative" style={{ maxWidth: "100%", maxHeight: "100%" }}>
 					<canvas
@@ -667,7 +667,7 @@ export default function VideoPreview({
 					{/* Transform overlay */}
 					{displayRect && selectedVideoClip && transformMode && (
 						<div
-							className="absolute border-2 border-blue-500 pointer-events-none"
+							className="absolute border-2 border-primary pointer-events-none"
 							style={{
 								left: `${displayRect.x}px`,
 								top: `${displayRect.y}px`,
@@ -677,7 +677,7 @@ export default function VideoPreview({
 						>
 							{/* Center circle for moving */}
 							<div
-								className="absolute bg-blue-500 rounded-full pointer-events-auto cursor-move"
+								className="absolute bg-primary rounded-full pointer-events-auto cursor-move"
 								style={{
 									width: "12px",
 									height: "12px",
@@ -692,7 +692,7 @@ export default function VideoPreview({
 							{["nw", "ne", "sw", "se"].map((handle) => (
 								<div
 									key={handle}
-									className="absolute bg-white border-2 border-blue-500 pointer-events-auto"
+									className="absolute bg-white border-2 border-primary pointer-events-auto"
 									style={{
 										width: "8px",
 										height: "8px",
@@ -708,7 +708,7 @@ export default function VideoPreview({
 							{["n", "e", "s", "w"].map((handle) => (
 								<div
 									key={handle}
-									className="absolute bg-white border-2 border-blue-500 pointer-events-auto"
+									className="absolute bg-white border-2 border-primary pointer-events-auto"
 									style={{
 										width: handle === "n" || handle === "s" ? "8px" : "2px",
 										height: handle === "e" || handle === "w" ? "8px" : "2px",

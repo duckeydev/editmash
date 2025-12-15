@@ -248,25 +248,25 @@ export default function Home() {
 			<MainLayout ref={mainLayoutRef} showMedia={showMedia} showEffects={showEffects} onTimelineStateChange={setCurrentTimelineState} />
 
 			{isRendering && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-					<div className="bg-[#1a1a1a] border border-zinc-700 rounded-lg p-6 min-w-[300px]">
-						<h3 className="text-white text-lg mb-4">Rendering Video...</h3>
-						<div className="w-full h-2 bg-zinc-700 rounded overflow-hidden">
-							<div className="h-full bg-blue-600 animate-pulse" style={{ width: "100%" }} />
+				<div className="fixed inset-0 bg-background/50 flex items-center justify-center z-[100]">
+					<div className="bg-card border border-border rounded-lg p-6 min-w-[300px]">
+						<h3 className="text-foreground text-lg mb-4">Rendering Video...</h3>
+						<div className="w-full h-2 bg-muted rounded overflow-hidden">
+							<div className="h-full bg-primary animate-pulse" style={{ width: "100%" }} />
 						</div>
-						<p className="text-zinc-400 text-sm mt-2">Job ID: {renderJobId}</p>
+						<p className="text-muted-foreground text-sm mt-2">Job ID: {renderJobId}</p>
 					</div>
 				</div>
 			)}
 
 			{isImporting && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-					<div className="bg-[#1a1a1a] border border-zinc-700 rounded-lg p-6 min-w-[300px]">
-						<h3 className="text-white text-lg mb-4">Importing Timeline...</h3>
-						<div className="w-full h-2 bg-zinc-700 rounded overflow-hidden">
-							<div className="h-full bg-amber-600 animate-pulse" style={{ width: "100%" }} />
+				<div className="fixed inset-0 bg-background/50 flex items-center justify-center z-[100]">
+					<div className="bg-card border border-border rounded-lg p-6 min-w-[300px]">
+						<h3 className="text-foreground text-lg mb-4">Importing Timeline...</h3>
+						<div className="w-full h-2 bg-muted rounded overflow-hidden">
+							<div className="h-full bg-chart-5 animate-pulse" style={{ width: "100%" }} />
 						</div>
-						<p className="text-zinc-400 text-sm mt-2">Re-uploading media files to B2...</p>
+						<p className="text-muted-foreground text-sm mt-2">Re-uploading media files to B2...</p>
 					</div>
 				</div>
 			)}
