@@ -24,6 +24,7 @@ export interface BaseClip {
 	startTime: number; // position on timeline
 	duration: number; // duration on timeline (can be affected by speed)
 	sourceIn: number; // offset into the source video file
+	sourceDuration: number;
 	thumbnail?: string;
 }
 

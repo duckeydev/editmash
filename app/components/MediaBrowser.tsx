@@ -6,11 +6,70 @@ import { mediaStore, MediaItem } from "../store/mediaStore";
 import { Folder, Image, Video, Music } from "lucide-react";
 import { validateFile, getAcceptAttribute } from "@/lib/validation";
 import { toast } from "sonner";
+import { useAudioWaveform } from "../hooks/useAudioWaveform";
 
 let currentDragItem: MediaItem | null = null;
 
 export function getCurrentDragItem() {
 	return currentDragItem;
+}
+
+function AudioWaveformPreview({ src, isUploading }: { src: string; isUploading?: boolean }) {
+	const peaks = useAudioWaveform(isUploading ? "" : src, 50);
+
+	if (peaks.length === 0) {
+		return <Music size={32} strokeWidth={1.5} className="text-muted-foreground" />;
+	}
+
+	return (
+		<div className="w-full h-full flex items-center justify-center px-1 bg-green-600">
+			<svg className="w-full h-full" preserveAspectRatio="none" viewBox={`0 0 ${peaks.length} 2`}>
+				<path
+					d={peaks
+						.map((peak, i) => {
+							const x = i + 0.5;
+							const yMax = 1 - peak.max;
+							const yMin = 1 - peak.min;
+
+							if (i === 0) {
+								return `M ${x} ${yMax} L ${x} ${yMin}`;
+							}
+							return `L ${x} ${yMax} L ${x} ${yMin}`;
+						})
+						.join(" ")}
+					fill="none"
+					stroke="rgba(255, 255, 255, 0.8)"
+					strokeWidth="1"
+					vectorEffect="non-scaling-stroke"
+				/>
+				<path
+					d={
+						peaks
+							.map((peak, i) => {
+								const x = i + 0.5;
+								const yMax = 1 - peak.max;
+								if (i === 0) return `M ${x} 1 L ${x} ${yMax}`;
+								return `L ${x} ${yMax}`;
+							})
+							.join(" ") +
+						" " +
+						peaks
+							.slice()
+							.reverse()
+							.map((peak, i) => {
+								const x = peaks.length - i - 0.5;
+								const yMin = 1 - peak.min;
+								return `L ${x} ${yMin}`;
+							})
+							.join(" ") +
+						" Z"
+					}
+					fill="rgba(255, 255, 255, 0.6)"
+					stroke="none"
+				/>
+			</svg>
+		</div>
+	);
 }
 
 export default function MediaBrowser() {
@@ -242,7 +301,7 @@ export default function MediaBrowser() {
 											) : item.type === "video" ? (
 												<Video size={32} strokeWidth={1.5} className="text-muted-foreground" />
 											) : (
-												<Music size={32} strokeWidth={1.5} className="text-muted-foreground" />
+												<AudioWaveformPreview src={item.url} isUploading={item.isUploading} />
 											)}
 										</div>
 										<p className="text-sm text-muted-foreground group-hover:text-foreground text-center truncate px-1">{item.name}</p>

@@ -1,18 +1,17 @@
 import { useEffect, useState, useRef } from "react";
 
-interface ThumbnailCache {
-	[src: string]: string[]; // array of data URLs
-}
-
-const thumbnailCache: ThumbnailCache = {};
+const thumbnailCache = new Map<string, string[]>();
 
 export function useVideoThumbnails(src: string, duration: number, thumbnailCount: number = 10) {
 	const [thumbnails, setThumbnails] = useState<string[]>([]);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 
 	useEffect(() => {
-		if (thumbnailCache[src]) {
-			setThumbnails(thumbnailCache[src]);
+		if (!src) return;
+
+		const cached = thumbnailCache.get(src);
+		if (cached) {
+			setThumbnails(cached);
 			return;
 		}
 
@@ -46,7 +45,7 @@ export function useVideoThumbnails(src: string, duration: number, thumbnailCount
 					const nextTime = (currentIndex / thumbnailCount) * duration;
 					video.currentTime = nextTime;
 				} else {
-					thumbnailCache[src] = generatedThumbnails;
+					thumbnailCache.set(src, generatedThumbnails);
 					setThumbnails(generatedThumbnails);
 					video.remove();
 				}
@@ -59,15 +58,15 @@ export function useVideoThumbnails(src: string, duration: number, thumbnailCount
 			captureThumbnail();
 		};
 
-		const onLoadedMetadata = () => {
-			video.currentTime = 0;
+		const onLoadedData = () => {
+			captureThumbnail();
 		};
 
-		video.addEventListener("loadedmetadata", onLoadedMetadata);
+		video.addEventListener("loadeddata", onLoadedData);
 		video.addEventListener("seeked", onSeeked);
 
 		return () => {
-			video.removeEventListener("loadedmetadata", onLoadedMetadata);
+			video.removeEventListener("loadeddata", onLoadedData);
 			video.removeEventListener("seeked", onSeeked);
 			if (videoRef.current) {
 				videoRef.current.remove();

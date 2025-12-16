@@ -40,7 +40,11 @@ function TimelineClip({
 	const thumbnails = clip.thumbnail ? [clip.thumbnail] : generatedThumbnails;
 
 	const waveformSampleCount = Math.max(50, Math.ceil(width / 3));
-	const waveformPeaks = useAudioWaveform(clip.type === "audio" ? clip.src : "", waveformSampleCount);
+	const waveformPeaks = useAudioWaveform(
+		clip.type === "audio" ? clip.src : "",
+		waveformSampleCount,
+		clip.type === "audio" ? { sourceIn: clip.sourceIn, sourceDuration: clip.duration } : {}
+	);
 
 	const volumeMultiplier = clip.type === "audio" ? (clip as AudioClip).properties.volume : 1;
 

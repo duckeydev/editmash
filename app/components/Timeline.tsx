@@ -501,20 +501,35 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 									newState.tracks[sourceTrackIndex].clips[clipIndex] = clip;
 								}
 							} else if (latestDragState.type === "trim-start") {
+								const speed = clip.type === "video" ? clip.properties.speed : clip.type === "audio" ? clip.properties.speed : 1;
+								const originalSourceIn = latestDragState.originalSourceIn || 0;
+
 								const newStartTime = Math.max(0, latestDragState.startTime + deltaTime);
 								const maxStartTime = latestDragState.startTime + latestDragState.startDuration - 0.1;
 								clip.startTime = Math.min(newStartTime, maxStartTime);
 								const trimAmount = clip.startTime - latestDragState.startTime;
 								clip.duration = latestDragState.startDuration - trimAmount;
 
-								if (clip.type === "video") {
-									const originalSourceIn = latestDragState.originalSourceIn || 0;
-									clip.sourceIn = originalSourceIn + trimAmount * clip.properties.speed;
+								const newSourceIn = originalSourceIn + trimAmount * speed;
+
+								if (newSourceIn < 0) {
+									const maxTrimBack = originalSourceIn / speed;
+									clip.startTime = latestDragState.startTime - maxTrimBack;
+									clip.duration = latestDragState.startDuration + maxTrimBack;
+									clip.sourceIn = 0;
+								} else {
+									clip.sourceIn = newSourceIn;
 								}
+
 								newState.tracks[sourceTrackIndex].clips[clipIndex] = clip;
 							} else if (latestDragState.type === "trim-end") {
+								const speed = clip.type === "video" ? clip.properties.speed : clip.type === "audio" ? clip.properties.speed : 1;
 								const newDuration = Math.max(0.1, latestDragState.startDuration + deltaTime);
-								const maxDuration = prev.duration - clip.startTime;
+								const maxTimelineDuration = prev.duration - clip.startTime;
+
+								const maxSourceDuration = (clip.sourceDuration - clip.sourceIn) / speed;
+
+								const maxDuration = Math.min(maxTimelineDuration, maxSourceDuration);
 								clip.duration = Math.min(newDuration, maxDuration);
 								newState.tracks[sourceTrackIndex].clips[clipIndex] = clip;
 							}
@@ -1002,6 +1017,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 									startTime: dropTime,
 									duration: clipDuration,
 									sourceIn: 0,
+									sourceDuration: mediaItem.duration,
 									thumbnail: mediaItem.thumbnail,
 									properties: {
 										position: { x: clipX, y: clipY },
@@ -1023,6 +1039,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 									startTime: dropTime,
 									duration: clipDuration,
 									sourceIn: 0,
+									sourceDuration: mediaItem.duration,
 									thumbnail: mediaItem.thumbnail,
 									properties: {
 										volume: 1.0,
@@ -1283,7 +1300,9 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 							<button
 								onClick={() => setToolMode("select")}
 								className={`p-1.5 rounded ${
-									toolMode === "select" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+									toolMode === "select"
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:bg-accent hover:text-foreground"
 								}`}
 								title="Select Mode (A)"
 							>
@@ -1292,7 +1311,9 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 							<button
 								onClick={() => setToolMode("blade")}
 								className={`p-1.5 rounded ${
-									toolMode === "blade" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+									toolMode === "blade"
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:bg-accent hover:text-foreground"
 								}`}
 								title="Blade Mode (B)"
 							>
@@ -1384,11 +1405,19 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					</div>
 					<div className="flex items-center gap-2">
 						<div className="flex items-center gap-1">
-							<button onClick={handleZoomOut} className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground" title="Zoom out">
+							<button
+								onClick={handleZoomOut}
+								className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
+								title="Zoom out"
+							>
 								<ZoomOut size={16} />
 							</button>
 							<span className="text-xs text-muted-foreground w-12 text-center">{Math.round((pixelsPerSecond / 50) * 100)}%</span>
-							<button onClick={handleZoomIn} className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground" title="Zoom in">
+							<button
+								onClick={handleZoomIn}
+								className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
+								title="Zoom in"
+							>
 								<ZoomIn size={16} />
 							</button>
 						</div>
