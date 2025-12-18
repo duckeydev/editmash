@@ -2,7 +2,8 @@ import { memo } from "react";
 import { Clip, VideoClip, ImageClip, AudioClip } from "../types/timeline";
 import { useVideoThumbnails } from "../hooks/useVideoThumbnails";
 import { useAudioWaveform } from "../hooks/useAudioWaveform";
-import { Snowflake } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { SnowIcon } from "@hugeicons/core-free-icons";
 
 interface TimelineClipProps {
 	clip: Clip;
@@ -193,7 +194,7 @@ function TimelineClip({
 
 			{clip.type === "video" && (clip as VideoClip).properties.freezeFrame && (
 				<div className="absolute top-1 right-1 pointer-events-none">
-					<Snowflake className="w-4 h-4 text-cyan-400 drop-shadow-md" />
+					<HugeiconsIcon icon={SnowIcon} className="w-4 h-4 text-cyan-400 drop-shadow-md" />
 				</div>
 			)}
 

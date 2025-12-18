@@ -13,7 +13,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Users, Plus, Copy, Check, Video, ScanBarcode } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { UserGroupIcon, Add01Icon, Copy01Icon, Tick01Icon, Video01Icon, QrCode01Icon } from "@hugeicons/core-free-icons";
 import { LobbyListItem, LobbyListResponse, LobbyListItemWithConfig } from "./types/lobby";
 import { MatchConfig, DEFAULT_MATCH_CONFIG } from "./types/match";
 import { MatchModifierBadges } from "./components/MatchModifierBadges";
@@ -135,13 +136,13 @@ export default function MatchmakingPage() {
 			if (!response.ok) {
 				const data = await response.json();
 				const errorMessage = data.message || data.error || "Failed to join lobby";
-				
+
 				// If already in lobby, just redirect instead of showing error
 				if (errorMessage === "Player already in lobby") {
 					router.push(`/lobby/${lobbyId}`);
 					return;
 				}
-				
+
 				throw new Error(errorMessage);
 			}
 
@@ -172,7 +173,7 @@ export default function MatchmakingPage() {
 			<header className="border-b bg-card">
 				<div className="container mx-auto px-4 py-4 flex items-center justify-between">
 					<div className="flex items-center gap-3">
-						<Video className="w-6 h-6 text-primary" />
+						<HugeiconsIcon icon={Video01Icon} className="w-6 h-6 text-primary" />
 						<h1 className="text-xl font-bold">EditMash</h1>
 					</div>
 
@@ -194,7 +195,7 @@ export default function MatchmakingPage() {
 					<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
 						<DialogTrigger asChild>
 							<Button size="lg" className="gap-2">
-								<Plus className="w-5 h-5" />
+								<HugeiconsIcon icon={Add01Icon} className="w-5 h-5" />
 								Create
 							</Button>
 						</DialogTrigger>
@@ -360,7 +361,7 @@ export default function MatchmakingPage() {
 					<Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
 						<DialogTrigger asChild>
 							<Button variant="outline" size="lg" className="gap-2">
-								<ScanBarcode className="w-5 h-5" />
+								<HugeiconsIcon icon={QrCode01Icon} className="w-5 h-5" />
 								Join
 							</Button>
 						</DialogTrigger>
@@ -398,7 +399,7 @@ export default function MatchmakingPage() {
 					{lobbies.length === 0 ? (
 						<Card className="p-12 text-center">
 							<div className="flex flex-col items-center gap-4">
-								<Users className="w-12 h-12 text-muted-foreground/50" />
+								<HugeiconsIcon icon={UserGroupIcon} className="w-12 h-12 text-muted-foreground/50" />
 								<div>
 									<p className="text-muted-foreground">No open lobbies right now</p>
 									<p className="text-sm text-muted-foreground/70">Create one or wait!</p>
@@ -463,7 +464,11 @@ function LobbyCard({ lobby, onJoin, isJoining }: { lobby: LobbyListItemWithConfi
 						<CardDescription>Hosted by @{lobby.hostUsername}</CardDescription>
 					</div>
 					<Badge variant="outline" className="font-mono cursor-pointer" onClick={copyCode}>
-						{copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
+						{copied ? (
+							<HugeiconsIcon icon={Tick01Icon} className="w-3 h-3 mr-1" />
+						) : (
+							<HugeiconsIcon icon={Copy01Icon} className="w-3 h-3 mr-1" />
+						)}
 						{lobby.joinCode}
 					</Badge>
 				</div>
@@ -471,7 +476,7 @@ function LobbyCard({ lobby, onJoin, isJoining }: { lobby: LobbyListItemWithConfi
 			<CardContent className="pb-3">
 				<div className="flex items-center gap-4">
 					<div className="flex items-center gap-1 text-sm text-muted-foreground">
-						<Users className="w-4 h-4" />
+						<HugeiconsIcon icon={UserGroupIcon} className="w-4 h-4" />
 						<span>
 							{lobby.playerCount}/{lobby.maxPlayers}
 						</span>

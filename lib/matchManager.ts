@@ -45,8 +45,8 @@ async function atomicLobbyStatusTransition(lobbyId: string): Promise<{ success: 
 
 	const luaScript = `
 		local current = redis.call("get", KEYS[1])
-		if current == nil then
-			redis.call("set", KEYS[1], "starting", "EX", 60)
+		if not current or current == "failed" then
+			redis.call("set", KEYS[1], "starting", "EX", 10)
 			return 1
 		else
 			return 0
@@ -69,20 +69,20 @@ export async function startMatchFromLobby(lobbyId: string): Promise<{ success: b
 	}
 
 	try {
-		const transition = await atomicLobbyStatusTransition(lobbyId);
-		if (!transition.success) {
-			return { success: false, message: "Lobby is already being started" };
-		}
-
 		const lobby = await storage.getLobbyById(lobbyId);
 		if (!lobby) {
-			await clearLobbyStatusTransition(lobbyId);
 			return { success: false, message: "Lobby not found" };
 		}
 
 		if (lobby.status !== "waiting") {
-			await clearLobbyStatusTransition(lobbyId);
 			return { success: false, message: "Lobby is not in waiting state" };
+		}
+
+		await clearLobbyStatusTransition(lobbyId);
+
+		const transition = await atomicLobbyStatusTransition(lobbyId);
+		if (!transition.success) {
+			return { success: false, message: "Lobby is already being started" };
 		}
 
 		if (lobby.players.length === 0) {

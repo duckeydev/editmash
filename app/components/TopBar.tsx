@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Check, Video, Download, Upload, Users } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Tick01Icon, Video01Icon, Download01Icon, Upload01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 
 interface TopBarProps {
 	showMedia: boolean;
@@ -98,7 +99,7 @@ export default function TopBar({
 														className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-2"
 													>
 														<span className="w-3 h-3 border border-muted-foreground rounded-sm flex items-center justify-center">
-															{menuItem.checked && <Check size={10} strokeWidth={2} />}
+															{menuItem.checked && <HugeiconsIcon icon={Tick01Icon} size={10} strokeWidth={2} />}
 														</span>
 														{menuItem.label}
 													</button>
@@ -131,7 +132,7 @@ export default function TopBar({
 						onClick={onRender}
 						className="flex items-center gap-1.5 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded transition-colors text-xs font-medium"
 					>
-						<Video size={14} />
+						<HugeiconsIcon icon={Video01Icon} size={14} />
 						Render
 					</button>
 				)}
@@ -142,7 +143,7 @@ export default function TopBar({
 						className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors text-xs font-medium"
 						title="Save timeline state as JSON (dev only)"
 					>
-						<Download size={14} />
+						<HugeiconsIcon icon={Download01Icon} size={14} />
 						Save Timeline
 					</button>
 				)}
@@ -167,7 +168,7 @@ export default function TopBar({
 							className="flex items-center gap-1.5 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors text-xs font-medium"
 							title="Import timeline from JSON (dev only)"
 						>
-							<Upload size={14} />
+							<HugeiconsIcon icon={Upload01Icon} size={14} />
 							Import Timeline
 						</button>
 					</>
@@ -177,7 +178,7 @@ export default function TopBar({
 			<div className="flex items-center gap-2">
 				{matchInfo && (
 					<div className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
-						<Users size={12} />
+						<HugeiconsIcon icon={UserGroupIcon} size={12} />
 						{matchInfo.playerCount}
 					</div>
 				)}

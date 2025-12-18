@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { mediaStore, MediaItem } from "../store/mediaStore";
-import { Image, Video, Music, ImageIcon } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Image01Icon, Video01Icon, MusicNote01Icon } from "@hugeicons/core-free-icons";
 import { validateFile, getAcceptAttribute } from "@/lib/validation";
 import { toast } from "sonner";
 import { useAudioWaveform } from "../hooks/useAudioWaveform";
@@ -20,7 +21,7 @@ function AudioWaveformPreview({ src, isUploading }: { src: string; isUploading?:
 	const peaks = useAudioWaveform(isUploading ? "" : src, 50);
 
 	if (peaks.length === 0) {
-		return <Music size={32} strokeWidth={1.5} className="text-muted-foreground" />;
+		return <HugeiconsIcon icon={MusicNote01Icon} size={32} strokeWidth={1.5} className="text-muted-foreground" />;
 	}
 
 	return (
@@ -373,7 +374,7 @@ export default function MediaBrowser() {
 					<div className="h-full bg-background overflow-y-auto p-4" onContextMenu={handleContextMenu}>
 						{mediaItems.length === 0 ? (
 							<div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-								<Image size={64} strokeWidth={1.5} className="mb-4" />
+								<HugeiconsIcon icon={Image01Icon} size={64} strokeWidth={1.5} className="mb-4" />
 								<p className="text-sm">No media imported</p>
 								<p className="text-xs mt-1">Right-click to import media</p>
 							</div>
@@ -412,11 +413,11 @@ export default function MediaBrowser() {
 											{item.type === "video" && item.thumbnail ? (
 												<img src={item.thumbnail} alt={item.name} className="w-full h-full object-cover" />
 											) : item.type === "video" ? (
-												<Video size={32} strokeWidth={1.5} className="text-muted-foreground" />
+												<HugeiconsIcon icon={Video01Icon} size={32} strokeWidth={1.5} className="text-muted-foreground" />
 											) : item.type === "image" && item.thumbnail ? (
 												<img src={item.thumbnail} alt={item.name} className="w-full h-full object-cover" />
 											) : item.type === "image" ? (
-												<ImageIcon size={32} strokeWidth={1.5} className="text-muted-foreground" />
+												<HugeiconsIcon icon={Image01Icon} size={32} strokeWidth={1.5} className="text-muted-foreground" />
 											) : (
 												<AudioWaveformPreview src={item.url} isUploading={item.isUploading} />
 											)}

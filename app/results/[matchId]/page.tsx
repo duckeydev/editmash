@@ -7,7 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Video, Users, Clock, Download, Home, Loader2, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+	Video01Icon,
+	UserGroupIcon,
+	Clock01Icon,
+	Download01Icon,
+	Home01Icon,
+	Loading03Icon,
+	CheckmarkCircle01Icon,
+	CancelCircleIcon,
+	ArrowLeft01Icon,
+} from "@hugeicons/core-free-icons";
 import { Match } from "@/app/types/match";
 
 interface MatchResponse {
@@ -82,10 +93,10 @@ export default function ResultsPage({ params }: { params: Promise<{ matchId: str
 				<div className="container mx-auto px-4 py-4 flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<Button variant="ghost" size="icon" onClick={() => router.push("/")}>
-							<ArrowLeft className="w-5 h-5" />
+							<HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
 						</Button>
 						<div className="flex items-center gap-3">
-							<Video className="w-6 h-6 text-primary" />
+							<HugeiconsIcon icon={Video01Icon} className="w-6 h-6 text-primary" />
 							<h1 className="text-xl font-bold">{match.lobbyName}</h1>
 						</div>
 					</div>
@@ -113,7 +124,7 @@ export default function ResultsPage({ params }: { params: Promise<{ matchId: str
 							<CardContent className="space-y-2.5">
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2 text-muted-foreground">
-										<Users className="w-3.5 h-3.5" />
+										<HugeiconsIcon icon={UserGroupIcon} className="w-3.5 h-3.5" />
 										<span className="text-xs">Players</span>
 									</div>
 									<span className="text-sm font-medium">{match.players.length}</span>
@@ -121,7 +132,7 @@ export default function ResultsPage({ params }: { params: Promise<{ matchId: str
 
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2 text-muted-foreground">
-										<Clock className="w-3.5 h-3.5" />
+										<HugeiconsIcon icon={Clock01Icon} className="w-3.5 h-3.5" />
 										<span className="text-xs">Timeline</span>
 									</div>
 									<span className="text-sm font-medium">{match.config.timelineDuration}s</span>
@@ -129,7 +140,7 @@ export default function ResultsPage({ params }: { params: Promise<{ matchId: str
 
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2 text-muted-foreground">
-										<Video className="w-3.5 h-3.5" />
+										<HugeiconsIcon icon={Video01Icon} className="w-3.5 h-3.5" />
 										<span className="text-xs">Edits</span>
 									</div>
 									<span className="text-sm font-medium">{match.editCount || 0}</span>
@@ -167,7 +178,7 @@ function RenderStatus({ match }: { match: Match }) {
 	if (match.status === "rendering") {
 		return (
 			<div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center gap-3">
-				<Loader2 className="w-10 h-10 animate-spin text-primary" />
+				<HugeiconsIcon icon={Loading03Icon} className="w-10 h-10 animate-spin text-primary" />
 				<div className="text-center">
 					<p className="text-sm font-medium">Rendering your video...</p>
 					<p className="text-xs text-muted-foreground">This may take a few minutes</p>
@@ -179,7 +190,7 @@ function RenderStatus({ match }: { match: Match }) {
 	if (match.status === "failed") {
 		return (
 			<div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center gap-3">
-				<XCircle className="w-10 h-10 text-destructive" />
+				<HugeiconsIcon icon={CancelCircleIcon} className="w-10 h-10 text-destructive" />
 				<div className="text-center">
 					<p className="text-sm font-medium text-destructive">Render failed</p>
 					<p className="text-xs text-muted-foreground">{match.renderError || "An unexpected error occurred"}</p>
@@ -198,7 +209,7 @@ function RenderStatus({ match }: { match: Match }) {
 
 	return (
 		<div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center gap-3">
-			<CheckCircle className="w-10 h-10 text-muted-foreground" />
+			<HugeiconsIcon icon={CheckmarkCircle01Icon} className="w-10 h-10 text-muted-foreground" />
 			<p className="text-sm text-muted-foreground">Match complete</p>
 		</div>
 	);

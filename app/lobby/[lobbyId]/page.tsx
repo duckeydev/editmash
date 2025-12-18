@@ -9,7 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Copy, Check, ArrowLeft, Play, Crown, LogOut, Video, Clock } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+	UserGroupIcon,
+	Copy01Icon,
+	Tick01Icon,
+	ArrowLeft01Icon,
+	PlayIcon,
+	CrownIcon,
+	Logout01Icon,
+	Video01Icon,
+	Clock01Icon,
+} from "@hugeicons/core-free-icons";
 import { Lobby, LobbyPlayer } from "@/app/types/lobby";
 import { MatchModifierBadges } from "@/app/components/MatchModifierBadges";
 
@@ -171,10 +182,10 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 				<div className="container mx-auto px-4 py-4 flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<Button variant="ghost" size="icon" onClick={() => router.push("/")}>
-							<ArrowLeft className="w-5 h-5" />
+							<HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
 						</Button>
 						<div className="flex items-center gap-3">
-							<Video className="w-6 h-6 text-primary" />
+							<HugeiconsIcon icon={Video01Icon} className="w-6 h-6 text-primary" />
 							<h1 className="text-xl font-bold">{lobby.name}</h1>
 						</div>
 					</div>
@@ -189,7 +200,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 								<div className="flex items-center justify-between">
 									<div>
 										<CardTitle className="flex items-center gap-2">
-											<Users className="w-5 h-5" />
+											<HugeiconsIcon icon={UserGroupIcon} className="w-5 h-5" />
 											Players
 											<span className="text-muted-foreground text-xs">
 												({lobby.players.length} / {lobby.matchConfig.maxPlayers})
@@ -212,7 +223,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 
 										{lobby.players.length === 0 && (
 											<div className="col-span-full text-center py-8 text-muted-foreground">
-												<Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+												<HugeiconsIcon icon={UserGroupIcon} className="w-12 h-12 mx-auto mb-4 opacity-50" />
 												<p>No players yet. Share the code to invite friends!</p>
 											</div>
 										)}
@@ -234,18 +245,18 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 
 						<div className="space-y-3">
 							<Button variant="outline" size="lg" className="w-full gap-2" onClick={copyCode}>
-								{copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+								{copied ? <HugeiconsIcon icon={Tick01Icon} className="w-5 h-5" /> : <HugeiconsIcon icon={Copy01Icon} className="w-5 h-5" />}
 								<span className="font-mono text-base">{lobby.joinCode}</span>
 							</Button>
 
 							{isHost ? (
 								<Button size="lg" className="w-full gap-2" onClick={handleStartMatch} disabled={!canStart || isStarting}>
-									<Play className="w-5 h-5" />
+									<HugeiconsIcon icon={PlayIcon} className="w-5 h-5" />
 									{isStarting ? "Starting..." : "Start"}
 								</Button>
 							) : (
 								<Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50">
-									<Clock className="text-amber-600 dark:text-amber-400" />
+									<HugeiconsIcon icon={Clock01Icon} className="text-amber-600 dark:text-amber-400" />
 									<AlertDescription className="text-amber-900 dark:text-amber-100">Waiting for host to start the match...</AlertDescription>
 								</Alert>
 							)}
@@ -257,7 +268,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 								onClick={handleLeaveLobby}
 								disabled={isLeaving}
 							>
-								<LogOut className="w-5 h-5" />
+								<HugeiconsIcon icon={Logout01Icon} className="w-5 h-5" />
 								{isLeaving ? "Leaving..." : "Leave"}
 							</Button>
 						</div>
@@ -281,7 +292,7 @@ function PlayerCard({ player, isHost, isCurrentUser }: { player: LobbyPlayer; is
 
 			<div className="w-full text-center">
 				<div className="flex items-center justify-center gap-1">
-					{isHost && <Crown className="w-3 h-3 text-amber-600 flex-shrink-0" />}
+					{isHost && <HugeiconsIcon icon={CrownIcon} className="w-3 h-3 text-amber-600 flex-shrink-0" />}
 					<span className="text-xs font-medium truncate">{player.username}</span>
 				</div>
 			</div>

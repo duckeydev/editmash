@@ -2,37 +2,39 @@
 
 import { useState } from "react";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-	Layers,
-	Circle,
-	ChevronLeft,
-	ChevronRight,
-	ChevronUp,
-	ChevronDown,
-	MoveHorizontal,
-	MoveVertical,
-	ZoomIn,
-	Droplets,
-} from "lucide-react";
+	Layers01Icon,
+	CircleIcon,
+	ArrowLeft01Icon,
+	ArrowRight01Icon,
+	ArrowUp01Icon,
+	ArrowDown01Icon,
+	MoveLeftIcon,
+	MoveRightIcon,
+	ZoomInAreaIcon,
+	DropletIcon,
+} from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 
 export default function EffectsBrowser() {
 	const [activeCategory, setActiveCategory] = useState<string>("Video Transitions");
 
 	const categories = ["Video Transitions", "Audio Transitions", "Titles", "Generators", "Effects"];
 
-	const effects = [
-		{ id: 1, name: "Cross Dissolve", icon: Layers },
-		{ id: 2, name: "Fade to Black", icon: Circle },
-		{ id: 3, name: "Fade to White", icon: Circle },
-		{ id: 4, name: "Dip to Color", icon: Droplets },
-		{ id: 5, name: "Wipe Left", icon: ChevronLeft },
-		{ id: 6, name: "Wipe Right", icon: ChevronRight },
-		{ id: 7, name: "Wipe Up", icon: ChevronUp },
-		{ id: 8, name: "Wipe Down", icon: ChevronDown },
-		{ id: 9, name: "Push", icon: MoveHorizontal },
-		{ id: 10, name: "Slide", icon: MoveVertical },
-		{ id: 11, name: "Zoom", icon: ZoomIn },
-		{ id: 12, name: "Blur Transition", icon: Layers },
+	const effects: { id: number; name: string; icon: IconSvgElement }[] = [
+		{ id: 1, name: "Cross Dissolve", icon: Layers01Icon },
+		{ id: 2, name: "Fade to Black", icon: CircleIcon },
+		{ id: 3, name: "Fade to White", icon: CircleIcon },
+		{ id: 4, name: "Dip to Color", icon: DropletIcon },
+		{ id: 5, name: "Wipe Left", icon: ArrowLeft01Icon },
+		{ id: 6, name: "Wipe Right", icon: ArrowRight01Icon },
+		{ id: 7, name: "Wipe Up", icon: ArrowUp01Icon },
+		{ id: 8, name: "Wipe Down", icon: ArrowDown01Icon },
+		{ id: 9, name: "Push", icon: MoveLeftIcon },
+		{ id: 10, name: "Slide", icon: MoveRightIcon },
+		{ id: 11, name: "Zoom", icon: ZoomInAreaIcon },
+		{ id: 12, name: "Blur Transition", icon: Layers01Icon },
 	];
 
 	return (
@@ -62,24 +64,26 @@ export default function EffectsBrowser() {
 			<ResizablePanel defaultSize={75}>
 				<div className="h-full bg-background overflow-y-auto p-4">
 					<div className="space-y-2">
-						{effects.map((effect) => {
-							const IconComponent = effect.icon;
-							return (
-								<div
-									key={effect.id}
-									className="flex items-center w-full bg-card border border-border hover:border-muted-foreground/50 rounded-md cursor-pointer group h-11"
-									draggable
-								>
-									<div className="flex items-center justify-center w-11 h-11 flex-shrink-0 border-r border-border">
-										<IconComponent size={18} strokeWidth={1.5} className="text-muted-foreground group-hover:text-foreground" />
-									</div>
-
-									<div className="flex-1 px-3 text-[13px] font-medium text-muted-foreground group-hover:text-foreground tracking-tight">
-										{effect.name}
-									</div>
+						{effects.map((effect) => (
+							<div
+								key={effect.id}
+								className="flex items-center w-full bg-card border border-border hover:border-muted-foreground/50 rounded-md cursor-pointer group h-11"
+								draggable
+							>
+								<div className="flex items-center justify-center w-11 h-11 flex-shrink-0 border-r border-border">
+									<HugeiconsIcon
+										icon={effect.icon}
+										size={18}
+										strokeWidth={1.5}
+										className="text-muted-foreground group-hover:text-foreground"
+									/>
 								</div>
-							);
-						})}
+
+								<div className="flex-1 px-3 text-[13px] font-medium text-muted-foreground group-hover:text-foreground tracking-tight">
+									{effect.name}
+								</div>
+							</div>
+						))}
 					</div>
 				</div>
 			</ResizablePanel>

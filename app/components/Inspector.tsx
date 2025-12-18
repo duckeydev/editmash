@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Clip, VideoClip, ImageClip, AudioClip, VideoClipProperties, AudioClipProperties } from "../types/timeline";
-import { ChevronDown, ChevronRight, Link2, Link2Off, RotateCcw, FlipHorizontal, FlipVertical } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+	ArrowDown01Icon,
+	ArrowRight01Icon,
+	Link01Icon,
+	LinkSquare01Icon,
+	FlipHorizontalIcon,
+	FlipVerticalIcon,
+} from "@hugeicons/core-free-icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -50,57 +58,6 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 	const handleAudioPropertyUpdate = (updates: Partial<AudioClip>) => {
 		if (onClipUpdate && clip?.type === "audio" && trackId) {
 			onClipUpdate(trackId, clip.id, updates);
-		}
-	};
-
-	const resetTransform = () => {
-		if (clip && (clip.type === "video" || clip.type === "image")) {
-			handlePropertyUpdate({
-				properties: {
-					...clip.properties,
-					zoom: { x: 1, y: 1, linked: true },
-					rotation: 0,
-					flip: { horizontal: false, vertical: false },
-				},
-			});
-		}
-	};
-
-	const resetCropping = () => {
-		if (clip && (clip.type === "video" || clip.type === "image")) {
-			handlePropertyUpdate({
-				properties: {
-					...clip.properties,
-					crop: { left: 0, right: 0, top: 0, bottom: 0, softness: 0 },
-				},
-			});
-		}
-	};
-
-	const resetSpeed = () => {
-		if (clip && clip.type === "video") {
-			handlePropertyUpdate({
-				properties: {
-					...clip.properties,
-					speed: 1,
-					freezeFrame: false,
-					freezeFrameTime: 0,
-				},
-			});
-		}
-	};
-
-	const resetAudio = () => {
-		if (clip && clip.type === "audio") {
-			handleAudioPropertyUpdate({
-				properties: {
-					...clip.properties,
-					volume: 1,
-					pan: 0,
-					pitch: 0,
-					speed: 1,
-				},
-			});
 		}
 	};
 
@@ -165,22 +122,14 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 										tabIndex={0}
 										onClick={() => setTransformExpanded(!transformExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setTransformExpanded(!transformExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
+										className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
 									>
-										<div className="flex items-center gap-2">
-											{transformExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-											<span>TRANSFORM</span>
-										</div>
-										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												resetTransform();
-											}}
-											className="p-1 hover:bg-muted rounded"
-											title="Reset all transform properties"
-										>
-											<RotateCcw size={14} />
-										</button>
+										{transformExpanded ? (
+											<HugeiconsIcon icon={ArrowDown01Icon} size={14} />
+										) : (
+											<HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+										)}
+										<span>TRANSFORM</span>
 									</div>
 
 									{transformExpanded && (
@@ -219,7 +168,11 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 															clip.properties.zoom.linked ? "text-primary" : "text-muted-foreground"
 														} hover:bg-muted`}
 													>
-														{clip.properties.zoom.linked ? <Link2 size={14} /> : <Link2Off size={14} />}
+														{clip.properties.zoom.linked ? (
+															<HugeiconsIcon icon={Link01Icon} size={14} />
+														) : (
+															<HugeiconsIcon icon={LinkSquare01Icon} size={14} />
+														)}
 													</button>
 													<span className="text-muted-foreground/60 text-xs">Y</span>
 													<DragNumberInput
@@ -323,7 +276,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														}`}
 														title="Flip Horizontal"
 													>
-														<FlipHorizontal size={16} />
+														<HugeiconsIcon icon={FlipHorizontalIcon} size={16} />
 													</button>
 													<button
 														onClick={() => {
@@ -341,7 +294,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 														}`}
 														title="Flip Vertical"
 													>
-														<FlipVertical size={16} />
+														<HugeiconsIcon icon={FlipVerticalIcon} size={16} />
 													</button>
 												</div>
 											)}
@@ -356,22 +309,14 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 										tabIndex={0}
 										onClick={() => setCroppingExpanded(!croppingExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setCroppingExpanded(!croppingExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
+										className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
 									>
-										<div className="flex items-center gap-2">
-											{croppingExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-											<span>CROPPING</span>
-										</div>
-										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												resetCropping();
-											}}
-											className="p-1 hover:bg-muted rounded"
-											title="Reset all cropping properties"
-										>
-											<RotateCcw size={14} />
-										</button>
+										{croppingExpanded ? (
+											<HugeiconsIcon icon={ArrowDown01Icon} size={14} />
+										) : (
+											<HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+										)}
+										<span>CROPPING</span>
 									</div>
 
 									{croppingExpanded && (
@@ -534,22 +479,14 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 										tabIndex={0}
 										onClick={() => setSpeedExpanded(!speedExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSpeedExpanded(!speedExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
+										className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
 									>
-										<div className="flex items-center gap-2">
-											{speedExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-											<span>SPEED</span>
-										</div>
-										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												resetSpeed();
-											}}
-											className="p-1 hover:bg-muted rounded"
-											title="Reset all speed properties"
-										>
-											<RotateCcw size={14} />
-										</button>
+										{speedExpanded ? (
+											<HugeiconsIcon icon={ArrowDown01Icon} size={14} />
+										) : (
+											<HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+										)}
+										<span>SPEED</span>
 									</div>
 
 									{speedExpanded && (
@@ -619,22 +556,14 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 										tabIndex={0}
 										onClick={() => setAudioExpanded(!audioExpanded)}
 										onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setAudioExpanded(!audioExpanded)}
-										className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent"
+										className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent"
 									>
-										<div className="flex items-center gap-2">
-											{audioExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-											<span>AUDIO</span>
-										</div>
-										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												resetAudio();
-											}}
-											className="p-1 hover:bg-accent rounded"
-											title="Reset all audio properties"
-										>
-											<RotateCcw size={14} />
-										</button>
+										{audioExpanded ? (
+											<HugeiconsIcon icon={ArrowDown01Icon} size={14} />
+										) : (
+											<HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+										)}
+										<span>AUDIO</span>
 									</div>
 
 									{audioExpanded && (
