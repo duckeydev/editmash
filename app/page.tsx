@@ -3,31 +3,27 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { usePlayerId, useUsername } from "./hooks/usePlayer";
+import { usePlayer } from "./hooks/usePlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserGroupIcon, Add01Icon, Copy01Icon, Tick01Icon, Video01Icon, QrCode01Icon } from "@hugeicons/core-free-icons";
-import { LobbyListItem, LobbyListResponse, LobbyListItemWithConfig } from "./types/lobby";
+import { LobbyListResponse, LobbyListItemWithConfig } from "./types/lobby";
 import { MatchConfig, DEFAULT_MATCH_CONFIG } from "./types/match";
 import { MatchModifierBadges } from "./components/MatchModifierBadges";
+import { UserMenu } from "./components/UserMenu";
 
 export default function MatchmakingPage() {
 	const router = useRouter();
-	const { playerId, isLoading: playerLoading } = usePlayerId();
-	const { username, setUsername, isLoading: usernameLoading } = useUsername();
+	const { playerId, username, isLoading: playerLoading, isAuthenticated } = usePlayer();
 
 	const [lobbies, setLobbies] = useState<LobbyListItemWithConfig[]>([]);
-
-	const [showUsernameDialog, setShowUsernameDialog] = useState(false);
-	const [usernameInput, setUsernameInput] = useState("");
 
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [lobbyName, setLobbyName] = useState("");
@@ -73,21 +69,8 @@ export default function MatchmakingPage() {
 		return () => clearInterval(interval);
 	}, [fetchLobbies]);
 
-	useEffect(() => {
-		if (!usernameLoading && !username) {
-			setShowUsernameDialog(true);
-		}
-	}, [usernameLoading, username]);
-
-	const handleSetUsername = () => {
-		if (usernameInput.trim()) {
-			setUsername(usernameInput.trim());
-			setShowUsernameDialog(false);
-		}
-	};
-
 	const handleCreateLobby = async () => {
-		if (!playerId || !username || !lobbyName.trim()) return;
+		if (!isAuthenticated || !lobbyName.trim()) return;
 
 		try {
 			setIsCreating(true);
@@ -96,8 +79,6 @@ export default function MatchmakingPage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					name: lobbyName.trim(),
-					hostPlayerId: playerId,
-					hostUsername: username,
 					matchConfig,
 				}),
 			});
@@ -117,8 +98,8 @@ export default function MatchmakingPage() {
 	};
 
 	const handleJoinLobby = async (lobbyId: string) => {
-		if (!playerId || !username) {
-			setShowUsernameDialog(true);
+		if (!isAuthenticated) {
+			toast.error("Please sign in to join a lobby");
 			return;
 		}
 
@@ -127,10 +108,7 @@ export default function MatchmakingPage() {
 			const response = await fetch(`/api/lobbies/${lobbyId}/join`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					playerId,
-					username,
-				}),
+				body: JSON.stringify({}),
 			});
 
 			if (!response.ok) {
@@ -160,7 +138,7 @@ export default function MatchmakingPage() {
 		setShowJoinDialog(false);
 	};
 
-	if (playerLoading || usernameLoading) {
+	if (playerLoading) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -177,22 +155,22 @@ export default function MatchmakingPage() {
 						<h1 className="text-xl font-bold">EditMash</h1>
 					</div>
 
-					<div className="flex items-center gap-4">
-						{username && (
-							<div className="flex items-center gap-2">
-								<Avatar className="h-8 w-8">
-									<AvatarFallback className="text-xs">{username.slice(0, 2).toUpperCase()}</AvatarFallback>
-								</Avatar>
-								<span className="text-sm font-medium">{username}</span>
-							</div>
-						)}
-					</div>
+					<UserMenu />
 				</div>
 			</header>
 
 			<main className="container mx-auto px-4 py-8">
 				<div className="flex flex-wrap gap-4 mb-8">
-					<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+					<Dialog
+						open={showCreateDialog}
+						onOpenChange={(open) => {
+							if (open && !isAuthenticated) {
+								toast.error("Please sign in to create a lobby");
+								return;
+							}
+							setShowCreateDialog(open);
+						}}
+					>
 						<DialogTrigger asChild>
 							<Button size="lg" className="gap-2">
 								<HugeiconsIcon icon={Add01Icon} className="w-5 h-5" />
@@ -394,7 +372,7 @@ export default function MatchmakingPage() {
 				</div>
 
 				<div className="space-y-4">
-					<h2 className="text-lg font-semibold">Lobbies ({lobbies.length == 0 ? "" : lobbies.length})</h2>
+					<h2 className="text-lg font-semibold">Lobbies {lobbies.length == 0 ? "" : `(${lobbies.length})`}</h2>
 
 					{lobbies.length === 0 ? (
 						<Card className="p-12 text-center">
@@ -415,32 +393,6 @@ export default function MatchmakingPage() {
 					)}
 				</div>
 			</main>
-
-			{/* USERNAME DIALOG - TODO : REMOVE WHEN ADDING AUTH */}
-			<Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
-				<DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
-					<DialogHeader>
-						<DialogTitle>Welcome to EditMash!</DialogTitle>
-						<DialogDescription>Choose a username to get started.</DialogDescription>
-					</DialogHeader>
-
-					<div className="py-4">
-						<Input
-							placeholder="Enter your username"
-							value={usernameInput}
-							onChange={(e) => setUsernameInput(e.target.value)}
-							onKeyDown={(e) => e.key === "Enter" && handleSetUsername()}
-							maxLength={20}
-						/>
-					</div>
-
-					<DialogFooter>
-						<Button onClick={handleSetUsername} disabled={!usernameInput.trim()} className="w-full">
-							Let&apos;s Go!
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

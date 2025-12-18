@@ -8,6 +8,27 @@
       "when": 1765904863371,
       "tag": "0000_cheerful_zeigeist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766058346397,
+      "tag": "0001_premium_hammerhead",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766058685424,
+      "tag": "0002_swift_leech",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766059806035,
+      "tag": "0003_burly_legion",
+      "breakpoints": true
     }
   ]
 }

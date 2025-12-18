@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
-import { usePlayerId, useUsername } from "@/app/hooks/usePlayer";
+import { usePlayer } from "@/app/hooks/usePlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -27,8 +27,7 @@ import { MatchModifierBadges } from "@/app/components/MatchModifierBadges";
 export default function LobbyPage({ params }: { params: Promise<{ lobbyId: string }> }) {
 	const { lobbyId } = use(params);
 	const router = useRouter();
-	const { playerId, isLoading: playerLoading } = usePlayerId();
-	const { username, isLoading: usernameLoading } = useUsername();
+	const { playerId, isLoading: playerLoading, isAuthenticated } = usePlayer();
 
 	const [lobby, setLobby] = useState<Lobby | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
@@ -75,14 +74,14 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 	}, [fetchLobby]);
 
 	useEffect(() => {
-		if (!lobby || !playerId || !username || playerLoading || usernameLoading) return;
+		if (!lobby || !playerId || playerLoading || !isAuthenticated) return;
 
 		const isInLobby = lobby.players.some((p) => p.id === playerId);
 		if (!isInLobby) {
 			fetch(`/api/lobbies/${lobbyId}/join`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ playerId, username }),
+				body: JSON.stringify({}),
 			}).then((res) => {
 				if (!res.ok) {
 					res.json().then((data) => {
@@ -93,7 +92,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 				}
 			});
 		}
-	}, [lobby, playerId, username, playerLoading, usernameLoading, lobbyId, fetchLobby]);
+	}, [lobby, playerId, playerLoading, isAuthenticated, lobbyId, fetchLobby]);
 
 	const copyCode = () => {
 		if (!lobby) return;
@@ -135,7 +134,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 			await fetch(`/api/lobbies/${lobbyId}/leave`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ playerId }),
+				body: JSON.stringify({}),
 			});
 			router.push("/");
 		} catch {
@@ -146,7 +145,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 	const isHost = lobby?.hostPlayerId === playerId;
 	const canStart = isHost && lobby && lobby.players.length >= 1;
 
-	if (playerLoading || usernameLoading || isLoading) {
+	if (playerLoading || isLoading) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="animate-pulse text-muted-foreground">Loading lobby...</div>
@@ -287,6 +286,7 @@ function PlayerCard({ player, isHost, isCurrentUser }: { player: LobbyPlayer; is
 			}`}
 		>
 			<Avatar className="w-8 h-8">
+				<AvatarImage src={player.image || undefined} alt={player.username} />
 				<AvatarFallback className="text-xs">{player.username.slice(0, 2).toUpperCase()}</AvatarFallback>
 			</Avatar>
 

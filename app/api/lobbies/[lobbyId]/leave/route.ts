@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { removePlayerFromLobby, getLobbyById, getLobbyByJoinCode } from "@/lib/storage";
-import { LeaveLobbyRequest, LeaveLobbyResponse } from "@/app/types/lobby";
+import { LeaveLobbyResponse } from "@/app/types/lobby";
+import { getServerSession } from "@/lib/auth";
 
 interface RouteParams {
 	params: Promise<{
@@ -10,16 +11,18 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams): Promise<NextResponse<LeaveLobbyResponse | { error: string }>> {
 	try {
+		const session = await getServerSession();
+		if (!session) {
+			return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+		}
+
 		const { lobbyId } = await params;
-		const body = (await request.json()) as LeaveLobbyRequest;
 
 		if (!lobbyId) {
 			return NextResponse.json({ error: "Lobby ID is required" }, { status: 400 });
 		}
 
-		if (!body.playerId || typeof body.playerId !== "string") {
-			return NextResponse.json({ error: "Player ID is required" }, { status: 400 });
-		}
+		const userId = session.user.id;
 
 		let lobby = await getLobbyById(lobbyId);
 		if (!lobby) {
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest, { params }: RouteParams): Promi
 			return NextResponse.json({ success: false, message: "Lobby not found" }, { status: 404 });
 		}
 
-		const result = await removePlayerFromLobby(lobby.id, body.playerId);
+		const result = await removePlayerFromLobby(lobby.id, userId);
 
 		if (!result.success) {
 			return NextResponse.json(result, { status: 400 });

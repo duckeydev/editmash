@@ -31,6 +31,7 @@ export const DEFAULT_MATCH_CONFIG: MatchConfig = {
 export interface MatchPlayer {
 	id: string;
 	username: string;
+	image?: string | null;
 	joinedAt: Date;
 	disconnectedAt: Date | null;
 	clipCount: number;

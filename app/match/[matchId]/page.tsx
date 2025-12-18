@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { usePlayerId } from "@/app/hooks/usePlayer";
+import { usePlayer } from "@/app/hooks/usePlayer";
 import TopBar from "@/app/components/TopBar";
 import MainLayout, { MainLayoutRef } from "@/app/components/MainLayout";
 import { TimelineState } from "@/app/types/timeline";
@@ -21,7 +21,7 @@ interface MatchStatusResponse {
 export default function MatchPage({ params }: { params: Promise<{ matchId: string }> }) {
 	const { matchId } = use(params);
 	const router = useRouter();
-	const { playerId, isLoading: playerLoading } = usePlayerId();
+	const { playerId, isLoading: playerLoading } = usePlayer();
 
 	const [match, setMatch] = useState<Match | null>(null);
 	const [isLoading, setIsLoading] = useState(true);

@@ -3,22 +3,22 @@ import { createLobby, listLobbies } from "@/lib/storage";
 import { validateMatchConfig } from "@/lib/constraints";
 import { DEFAULT_MATCH_CONFIG, MatchConfig } from "@/app/types/match";
 import { CreateLobbyRequest, CreateLobbyResponse, LobbyListResponse, LobbyStatus } from "@/app/types/lobby";
+import { getServerSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest): Promise<NextResponse<CreateLobbyResponse | { error: string }>> {
 	try {
+		const session = await getServerSession();
+		if (!session) {
+			return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+		}
+
 		const body = (await request.json()) as CreateLobbyRequest;
 
 		if (!body.name || typeof body.name !== "string") {
 			return NextResponse.json({ error: "Lobby name is required" }, { status: 400 });
 		}
 
-		if (!body.hostPlayerId || typeof body.hostPlayerId !== "string") {
-			return NextResponse.json({ error: "Host player ID is required" }, { status: 400 });
-		}
-
-		if (!body.hostUsername || typeof body.hostUsername !== "string") {
-			return NextResponse.json({ error: "Host username is required" }, { status: 400 });
-		}
+		const userId = session.user.id;
 
 		const matchConfig: MatchConfig = {
 			...DEFAULT_MATCH_CONFIG,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateLob
 			return NextResponse.json({ error: configValidation.reason || "Invalid match configuration" }, { status: 400 });
 		}
 
-		const result = await createLobby(body.name, matchConfig, body.hostPlayerId, body.hostUsername);
+		const result = await createLobby(body.name, matchConfig, userId);
 
 		return NextResponse.json({
 			lobbyId: result.lobbyId,

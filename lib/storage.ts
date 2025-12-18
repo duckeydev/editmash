@@ -1,5 +1,5 @@
 import { eq, and, desc } from "drizzle-orm";
-import { db, lobbies, lobbyPlayers, matches, matchPlayers, clipEditOperations } from "./db";
+import { db, lobbies, lobbyPlayers, matches, matchPlayers, clipEditOperations, user } from "./db";
 import type { Lobby, LobbyPlayer, LobbyStatus, LobbyListItemWithConfig } from "../app/types/lobby";
 import type { Match, MatchStatus, MatchConfig, ClipEditOperation } from "../app/types/match";
 import type { TimelineState, Clip, Track } from "../app/types/timeline";
@@ -16,8 +16,7 @@ function generateJoinCode(): string {
 export async function createLobby(
 	name: string,
 	matchConfig: MatchConfig,
-	hostPlayerId: string,
-	hostUsername: string
+	hostUserId: string
 ): Promise<{ lobbyId: string; joinCode: string }> {
 	const database = db();
 	const joinCode = generateJoinCode();
@@ -28,15 +27,14 @@ export async function createLobby(
 			name,
 			joinCode,
 			status: "waiting",
-			hostPlayerId,
+			hostPlayerId: hostUserId,
 			matchConfigJson: matchConfig,
 		})
 		.returning({ id: lobbies.id, joinCode: lobbies.joinCode });
 
 	await database.insert(lobbyPlayers).values({
 		lobbyId: lobby.id,
-		playerId: hostPlayerId,
-		username: hostUsername,
+		userId: hostUserId,
 		isHost: true,
 		isReady: true,
 	});
@@ -53,9 +51,22 @@ export async function getLobbyById(lobbyId: string): Promise<Lobby | null> {
 		return null;
 	}
 
-	const players = await database.select().from(lobbyPlayers).where(eq(lobbyPlayers.lobbyId, lobbyId));
+	const playersWithUsers = await database
+		.select({
+			id: lobbyPlayers.id,
+			lobbyId: lobbyPlayers.lobbyId,
+			userId: lobbyPlayers.userId,
+			isHost: lobbyPlayers.isHost,
+			isReady: lobbyPlayers.isReady,
+			joinedAt: lobbyPlayers.joinedAt,
+			userName: user.name,
+			userImage: user.image,
+		})
+		.from(lobbyPlayers)
+		.innerJoin(user, eq(lobbyPlayers.userId, user.id))
+		.where(eq(lobbyPlayers.lobbyId, lobbyId));
 
-	return mapLobbyRecordToLobby(lobbyRecord, players);
+	return mapLobbyRecordToLobby(lobbyRecord, playersWithUsers);
 }
 
 export async function getLobbyByJoinCode(joinCode: string): Promise<Lobby | null> {
@@ -67,9 +78,22 @@ export async function getLobbyByJoinCode(joinCode: string): Promise<Lobby | null
 		return null;
 	}
 
-	const players = await database.select().from(lobbyPlayers).where(eq(lobbyPlayers.lobbyId, lobbyRecord.id));
+	const playersWithUsers = await database
+		.select({
+			id: lobbyPlayers.id,
+			lobbyId: lobbyPlayers.lobbyId,
+			userId: lobbyPlayers.userId,
+			isHost: lobbyPlayers.isHost,
+			isReady: lobbyPlayers.isReady,
+			joinedAt: lobbyPlayers.joinedAt,
+			userName: user.name,
+			userImage: user.image,
+		})
+		.from(lobbyPlayers)
+		.innerJoin(user, eq(lobbyPlayers.userId, user.id))
+		.where(eq(lobbyPlayers.lobbyId, lobbyRecord.id));
 
-	return mapLobbyRecordToLobby(lobbyRecord, players);
+	return mapLobbyRecordToLobby(lobbyRecord, playersWithUsers);
 }
 
 export async function listLobbies(status?: LobbyStatus): Promise<LobbyListItemWithConfig[]> {
@@ -86,18 +110,31 @@ export async function listLobbies(status?: LobbyStatus): Promise<LobbyListItemWi
 	const result: LobbyListItemWithConfig[] = [];
 
 	for (const record of lobbyRecords) {
-		const players = await database.select().from(lobbyPlayers).where(eq(lobbyPlayers.lobbyId, record.id));
+		const playersWithUsers = await database
+			.select({
+				id: lobbyPlayers.id,
+				lobbyId: lobbyPlayers.lobbyId,
+				userId: lobbyPlayers.userId,
+				isHost: lobbyPlayers.isHost,
+				isReady: lobbyPlayers.isReady,
+				joinedAt: lobbyPlayers.joinedAt,
+				userName: user.name,
+				userImage: user.image,
+			})
+			.from(lobbyPlayers)
+			.innerJoin(user, eq(lobbyPlayers.userId, user.id))
+			.where(eq(lobbyPlayers.lobbyId, record.id));
 
-		const host = players.find((p) => p.isHost);
+		const host = playersWithUsers.find((p) => p.isHost);
 
 		result.push({
 			id: record.id,
 			name: record.name,
 			joinCode: record.joinCode,
 			status: record.status,
-			playerCount: players.length,
+			playerCount: playersWithUsers.length,
 			maxPlayers: record.matchConfigJson.maxPlayers,
-			hostUsername: host?.username || "Unknown",
+			hostUsername: host?.userName || "Unknown",
 			createdAt: record.createdAt,
 			matchConfig: record.matchConfigJson as MatchConfig,
 		});
@@ -106,11 +143,7 @@ export async function listLobbies(status?: LobbyStatus): Promise<LobbyListItemWi
 	return result;
 }
 
-export async function addPlayerToLobby(
-	lobbyId: string,
-	playerId: string,
-	username: string
-): Promise<{ success: boolean; message: string }> {
+export async function addPlayerToLobby(lobbyId: string, userId: string): Promise<{ success: boolean; message: string }> {
 	const database = db();
 
 	const lobby = await getLobbyById(lobbyId);
@@ -126,15 +159,14 @@ export async function addPlayerToLobby(
 		return { success: false, message: "Lobby is full" };
 	}
 
-	const existingPlayer = lobby.players.find((p) => p.id === playerId);
+	const existingPlayer = lobby.players.find((p) => p.id === userId);
 	if (existingPlayer) {
 		return { success: false, message: "Player already in lobby" };
 	}
 
 	await database.insert(lobbyPlayers).values({
 		lobbyId,
-		playerId,
-		username,
+		userId,
 		isHost: false,
 		isReady: false,
 	});
@@ -142,7 +174,7 @@ export async function addPlayerToLobby(
 	return { success: true, message: "Successfully joined lobby" };
 }
 
-export async function removePlayerFromLobby(lobbyId: string, playerId: string): Promise<{ success: boolean; message: string }> {
+export async function removePlayerFromLobby(lobbyId: string, userId: string): Promise<{ success: boolean; message: string }> {
 	const database = db();
 
 	const lobby = await getLobbyById(lobbyId);
@@ -150,21 +182,21 @@ export async function removePlayerFromLobby(lobbyId: string, playerId: string): 
 		return { success: false, message: "Lobby not found" };
 	}
 
-	const player = lobby.players.find((p) => p.id === playerId);
+	const player = lobby.players.find((p) => p.id === userId);
 	if (!player) {
 		return { success: false, message: "Player not in lobby" };
 	}
 
-	await database.delete(lobbyPlayers).where(and(eq(lobbyPlayers.lobbyId, lobbyId), eq(lobbyPlayers.playerId, playerId)));
+	await database.delete(lobbyPlayers).where(and(eq(lobbyPlayers.lobbyId, lobbyId), eq(lobbyPlayers.userId, userId)));
 
 	// host left, assign new host or close lobby
 	if (player.isHost) {
-		const remainingPlayers = lobby.players.filter((p) => p.id !== playerId);
+		const remainingPlayers = lobby.players.filter((p) => p.id !== userId);
 		if (remainingPlayers.length > 0) {
 			await database
 				.update(lobbyPlayers)
 				.set({ isHost: true })
-				.where(and(eq(lobbyPlayers.lobbyId, lobbyId), eq(lobbyPlayers.playerId, remainingPlayers[0].id)));
+				.where(and(eq(lobbyPlayers.lobbyId, lobbyId), eq(lobbyPlayers.userId, remainingPlayers[0].id)));
 		} else {
 			await database.update(lobbies).set({ status: "closed", updatedAt: new Date() }).where(eq(lobbies.id, lobbyId));
 		}
@@ -186,13 +218,13 @@ export async function updateLobbyStatus(lobbyId: string, status: LobbyStatus, ma
 		.where(eq(lobbies.id, lobbyId));
 }
 
-export async function setPlayerReady(lobbyId: string, playerId: string, ready: boolean): Promise<void> {
+export async function setPlayerReady(lobbyId: string, userId: string, ready: boolean): Promise<void> {
 	const database = db();
 
 	await database
 		.update(lobbyPlayers)
 		.set({ isReady: ready })
-		.where(and(eq(lobbyPlayers.lobbyId, lobbyId), eq(lobbyPlayers.playerId, playerId)));
+		.where(and(eq(lobbyPlayers.lobbyId, lobbyId), eq(lobbyPlayers.userId, userId)));
 }
 
 // Match functions
@@ -236,8 +268,7 @@ export async function createMatch(lobbyId: string, lobbyName: string, config: Ma
 	for (const player of players) {
 		await database.insert(matchPlayers).values({
 			matchId: match.id,
-			playerId: player.id,
-			username: player.username,
+			userId: player.id,
 			clipCount: 0,
 		});
 	}
@@ -259,9 +290,22 @@ export async function getMatchById(matchId: string): Promise<Match | null> {
 		return null;
 	}
 
-	const players = await database.select().from(matchPlayers).where(eq(matchPlayers.matchId, matchId));
+	const playersWithUsers = await database
+		.select({
+			id: matchPlayers.id,
+			matchId: matchPlayers.matchId,
+			userId: matchPlayers.userId,
+			joinedAt: matchPlayers.joinedAt,
+			disconnectedAt: matchPlayers.disconnectedAt,
+			clipCount: matchPlayers.clipCount,
+			userName: user.name,
+			userImage: user.image,
+		})
+		.from(matchPlayers)
+		.innerJoin(user, eq(matchPlayers.userId, user.id))
+		.where(eq(matchPlayers.matchId, matchId));
 
-	return mapMatchRecordToMatch(matchRecord, players);
+	return mapMatchRecordToMatch(matchRecord, playersWithUsers);
 }
 
 export async function getMatchByLobbyId(lobbyId: string): Promise<Match | null> {
@@ -273,9 +317,22 @@ export async function getMatchByLobbyId(lobbyId: string): Promise<Match | null> 
 		return null;
 	}
 
-	const players = await database.select().from(matchPlayers).where(eq(matchPlayers.matchId, matchRecord.id));
+	const playersWithUsers = await database
+		.select({
+			id: matchPlayers.id,
+			matchId: matchPlayers.matchId,
+			userId: matchPlayers.userId,
+			joinedAt: matchPlayers.joinedAt,
+			disconnectedAt: matchPlayers.disconnectedAt,
+			clipCount: matchPlayers.clipCount,
+			userName: user.name,
+			userImage: user.image,
+		})
+		.from(matchPlayers)
+		.innerJoin(user, eq(matchPlayers.userId, user.id))
+		.where(eq(matchPlayers.matchId, matchRecord.id));
 
-	return mapMatchRecordToMatch(matchRecord, players);
+	return mapMatchRecordToMatch(matchRecord, playersWithUsers);
 }
 
 export async function updateMatchStatus(matchId: string, status: MatchStatus): Promise<void> {
@@ -319,22 +376,22 @@ export async function updateMatchRender(matchId: string, renderJobId?: string, r
 		.where(eq(matches.id, matchId));
 }
 
-export async function markPlayerDisconnected(matchId: string, playerId: string): Promise<void> {
+export async function markPlayerDisconnected(matchId: string, userId: string): Promise<void> {
 	const database = db();
 
 	await database
 		.update(matchPlayers)
 		.set({ disconnectedAt: new Date() })
-		.where(and(eq(matchPlayers.matchId, matchId), eq(matchPlayers.playerId, playerId)));
+		.where(and(eq(matchPlayers.matchId, matchId), eq(matchPlayers.userId, userId)));
 }
 
-export async function incrementPlayerClipCount(matchId: string, playerId: string, delta: number = 1): Promise<void> {
+export async function incrementPlayerClipCount(matchId: string, userId: string, delta: number = 1): Promise<void> {
 	const database = db();
 
 	const [player] = await database
 		.select()
 		.from(matchPlayers)
-		.where(and(eq(matchPlayers.matchId, matchId), eq(matchPlayers.playerId, playerId)))
+		.where(and(eq(matchPlayers.matchId, matchId), eq(matchPlayers.userId, userId)))
 		.limit(1);
 
 	if (player) {
@@ -392,6 +449,17 @@ export async function getMatchEditHistory(matchId: string): Promise<ClipEditOper
 
 // other functions
 
+type LobbyPlayerWithUser = {
+	id: string;
+	lobbyId: string;
+	userId: string;
+	isHost: boolean;
+	isReady: boolean;
+	joinedAt: Date;
+	userName: string;
+	userImage: string | null;
+};
+
 function mapLobbyRecordToLobby(
 	record: {
 		id: string;
@@ -404,15 +472,7 @@ function mapLobbyRecordToLobby(
 		createdAt: Date;
 		updatedAt: Date;
 	},
-	players: Array<{
-		id: string;
-		lobbyId: string;
-		playerId: string;
-		username: string;
-		isHost: boolean;
-		isReady: boolean;
-		joinedAt: Date;
-	}>
+	players: LobbyPlayerWithUser[]
 ): Lobby {
 	return {
 		id: record.id,
@@ -422,8 +482,9 @@ function mapLobbyRecordToLobby(
 		hostPlayerId: record.hostPlayerId,
 		matchConfig: record.matchConfigJson,
 		players: players.map((p) => ({
-			id: p.playerId,
-			username: p.username,
+			id: p.userId,
+			username: p.userName,
+			image: p.userImage,
 			joinedAt: p.joinedAt,
 			isHost: p.isHost,
 			isReady: p.isReady,
@@ -433,6 +494,17 @@ function mapLobbyRecordToLobby(
 		updatedAt: record.updatedAt,
 	};
 }
+
+type MatchPlayerWithUser = {
+	id: string;
+	matchId: string;
+	userId: string;
+	joinedAt: Date;
+	disconnectedAt: Date | null;
+	clipCount: number;
+	userName: string;
+	userImage: string | null;
+};
 
 function mapMatchRecordToMatch(
 	record: {
@@ -452,15 +524,7 @@ function mapMatchRecordToMatch(
 		createdAt: Date;
 		updatedAt: Date;
 	},
-	players: Array<{
-		id: string;
-		matchId: string;
-		playerId: string;
-		username: string;
-		joinedAt: Date;
-		disconnectedAt: Date | null;
-		clipCount: number;
-	}>
+	players: MatchPlayerWithUser[]
 ): Match {
 	return {
 		id: record.id,
@@ -471,8 +535,9 @@ function mapMatchRecordToMatch(
 		timeline: record.timelineJson,
 		editCount: record.editCount,
 		players: players.map((p) => ({
-			id: p.playerId,
-			username: p.username,
+			id: p.userId,
+			username: p.userName,
+			image: p.userImage,
 			joinedAt: p.joinedAt,
 			disconnectedAt: p.disconnectedAt,
 			clipCount: p.clipCount,
@@ -509,8 +574,21 @@ export async function getExpiredMatches(): Promise<Match[]> {
 
 	for (const record of records) {
 		if (record.endsAt && record.endsAt <= now) {
-			const players = await database.select().from(matchPlayers).where(eq(matchPlayers.matchId, record.id));
-			expiredMatches.push(mapMatchRecordToMatch(record, players));
+			const playersWithUsers = await database
+				.select({
+					id: matchPlayers.id,
+					matchId: matchPlayers.matchId,
+					userId: matchPlayers.userId,
+					joinedAt: matchPlayers.joinedAt,
+					disconnectedAt: matchPlayers.disconnectedAt,
+					clipCount: matchPlayers.clipCount,
+					userName: user.name,
+					userImage: user.image,
+				})
+				.from(matchPlayers)
+				.innerJoin(user, eq(matchPlayers.userId, user.id))
+				.where(eq(matchPlayers.matchId, record.id));
+			expiredMatches.push(mapMatchRecordToMatch(record, playersWithUsers));
 		}
 	}
 

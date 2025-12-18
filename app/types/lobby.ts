@@ -5,6 +5,7 @@ export type LobbyStatus = "waiting" | "starting" | "in_match" | "closed";
 export interface LobbyPlayer {
 	id: string;
 	username: string;
+	image?: string | null;
 	joinedAt: Date;
 	isHost: boolean;
 	isReady: boolean;
@@ -25,9 +26,7 @@ export interface Lobby {
 
 export interface CreateLobbyRequest {
 	name: string;
-	matchConfig: Partial<MatchConfig>;
-	hostPlayerId: string;
-	hostUsername: string;
+	matchConfig?: Partial<MatchConfig>;
 }
 
 export interface CreateLobbyResponse {
@@ -35,10 +34,6 @@ export interface CreateLobbyResponse {
 	joinCode: string;
 }
 
-export interface JoinLobbyRequest {
-	playerId: string;
-	username: string;
-}
 
 export interface JoinLobbyResponse {
 	success: boolean;
@@ -46,9 +41,6 @@ export interface JoinLobbyResponse {
 	lobby?: Lobby;
 }
 
-export interface LeaveLobbyRequest {
-	playerId: string;
-}
 
 export interface LeaveLobbyResponse {
 	success: boolean;

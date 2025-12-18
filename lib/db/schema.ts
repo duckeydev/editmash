@@ -1,9 +1,113 @@
-import { pgTable, text, timestamp, jsonb, integer, boolean, real, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, integer, boolean, real, uuid, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import type { MatchConfig } from "../../app/types/match";
 import type { TimelineState } from "../../app/types/timeline";
 import type { LobbyStatus } from "../../app/types/lobby";
 import type { MatchStatus } from "../../app/types/match";
+
+// Better auth tables
+
+export const user = pgTable("user", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	email: text("email").notNull().unique(),
+	emailVerified: boolean("email_verified").default(false).notNull(),
+	image: text("image"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull(),
+});
+
+export const session = pgTable(
+	"session",
+	{
+		id: text("id").primaryKey(),
+		expiresAt: timestamp("expires_at").notNull(),
+		token: text("token").notNull().unique(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+		ipAddress: text("ip_address"),
+		userAgent: text("user_agent"),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+	},
+	(table) => [index("session_userId_idx").on(table.userId)]
+);
+
+export const account = pgTable(
+	"account",
+	{
+		id: text("id").primaryKey(),
+		accountId: text("account_id").notNull(),
+		providerId: text("provider_id").notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		accessToken: text("access_token"),
+		refreshToken: text("refresh_token"),
+		idToken: text("id_token"),
+		accessTokenExpiresAt: timestamp("access_token_expires_at"),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+		scope: text("scope"),
+		password: text("password"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [index("account_userId_idx").on(table.userId)]
+);
+
+export const verification = pgTable(
+	"verification",
+	{
+		id: text("id").primaryKey(),
+		identifier: text("identifier").notNull(),
+		value: text("value").notNull(),
+		expiresAt: timestamp("expires_at").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [index("verification_identifier_idx").on(table.identifier)]
+);
+
+export const userRelations = relations(user, ({ many }) => ({
+	sessions: many(session),
+	accounts: many(account),
+	lobbyMemberships: many(lobbyPlayers),
+	matchMemberships: many(matchPlayers),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+	user: one(user, {
+		fields: [session.userId],
+		references: [user.id],
+	}),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+	user: one(user, {
+		fields: [account.userId],
+		references: [user.id],
+	}),
+}));
+
+export type UserRecord = typeof user.$inferSelect;
+export type NewUserRecord = typeof user.$inferInsert;
+export type SessionRecord = typeof session.$inferSelect;
+export type AccountRecord = typeof account.$inferSelect;
+
+// other tables
 
 export const lobbies = pgTable("lobbies", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -17,17 +121,22 @@ export const lobbies = pgTable("lobbies", {
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const lobbyPlayers = pgTable("lobby_players", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	lobbyId: uuid("lobby_id")
-		.notNull()
-		.references(() => lobbies.id, { onDelete: "cascade" }),
-	playerId: text("player_id").notNull(),
-	username: text("username").notNull(),
-	isHost: boolean("is_host").notNull().default(false),
-	isReady: boolean("is_ready").notNull().default(false),
-	joinedAt: timestamp("joined_at").notNull().defaultNow(),
-});
+export const lobbyPlayers = pgTable(
+	"lobby_players",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		lobbyId: uuid("lobby_id")
+			.notNull()
+			.references(() => lobbies.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		isHost: boolean("is_host").notNull().default(false),
+		isReady: boolean("is_ready").notNull().default(false),
+		joinedAt: timestamp("joined_at").notNull().defaultNow(),
+	},
+	(table) => [index("lobby_players_userId_idx").on(table.userId)]
+);
 
 export const matches = pgTable("matches", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -49,17 +158,22 @@ export const matches = pgTable("matches", {
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const matchPlayers = pgTable("match_players", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	matchId: uuid("match_id")
-		.notNull()
-		.references(() => matches.id, { onDelete: "cascade" }),
-	playerId: text("player_id").notNull(),
-	username: text("username").notNull(),
-	joinedAt: timestamp("joined_at").notNull().defaultNow(),
-	disconnectedAt: timestamp("disconnected_at"),
-	clipCount: integer("clip_count").notNull().default(0),
-});
+export const matchPlayers = pgTable(
+	"match_players",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		matchId: uuid("match_id")
+			.notNull()
+			.references(() => matches.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		joinedAt: timestamp("joined_at").notNull().defaultNow(),
+		disconnectedAt: timestamp("disconnected_at"),
+		clipCount: integer("clip_count").notNull().default(0),
+	},
+	(table) => [index("match_players_userId_idx").on(table.userId)]
+);
 
 export const clipEditOperations = pgTable("clip_edit_operations", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -88,6 +202,10 @@ export const lobbyPlayersRelations = relations(lobbyPlayers, ({ one }) => ({
 		fields: [lobbyPlayers.lobbyId],
 		references: [lobbies.id],
 	}),
+	user: one(user, {
+		fields: [lobbyPlayers.userId],
+		references: [user.id],
+	}),
 }));
 
 export const matchesRelations = relations(matches, ({ many, one }) => ({
@@ -103,6 +221,10 @@ export const matchPlayersRelations = relations(matchPlayers, ({ one }) => ({
 	match: one(matches, {
 		fields: [matchPlayers.matchId],
 		references: [matches.id],
+	}),
+	user: one(user, {
+		fields: [matchPlayers.userId],
+		references: [user.id],
 	}),
 }));
 
