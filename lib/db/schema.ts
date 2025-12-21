@@ -1,5 +1,5 @@
-import { pgTable, text, timestamp, jsonb, integer, boolean, real, uuid, index } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, jsonb, integer, boolean, real, uuid, index, check } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import type { MatchConfig } from "../../app/types/match";
 import type { TimelineState } from "../../app/types/timeline";
 import type { LobbyStatus } from "../../app/types/lobby";
@@ -175,6 +175,28 @@ export const matchPlayers = pgTable(
 	(table) => [index("match_players_userId_idx").on(table.userId)]
 );
 
+export const matchMedia = pgTable(
+	"match_media",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		matchId: uuid("match_id")
+			.notNull()
+			.references(() => matches.id, { onDelete: "cascade" }),
+		uploadedBy: text("uploaded_by")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		type: text("type").$type<"video" | "audio" | "image">().notNull(),
+		url: text("url").notNull(),
+		fileId: text("file_id"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("match_media_matchId_idx").on(table.matchId),
+		check("match_media_type_check", sql`${table.type} IN ('video', 'audio', 'image')`),
+	]
+);
+
 export const clipEditOperations = pgTable("clip_edit_operations", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	matchId: uuid("match_id")
@@ -210,6 +232,7 @@ export const lobbyPlayersRelations = relations(lobbyPlayers, ({ one }) => ({
 
 export const matchesRelations = relations(matches, ({ many, one }) => ({
 	players: many(matchPlayers),
+	media: many(matchMedia),
 	editOperations: many(clipEditOperations),
 	lobby: one(lobbies, {
 		fields: [matches.lobbyId],
@@ -224,6 +247,17 @@ export const matchPlayersRelations = relations(matchPlayers, ({ one }) => ({
 	}),
 	user: one(user, {
 		fields: [matchPlayers.userId],
+		references: [user.id],
+	}),
+}));
+
+export const matchMediaRelations = relations(matchMedia, ({ one }) => ({
+	match: one(matches, {
+		fields: [matchMedia.matchId],
+		references: [matches.id],
+	}),
+	uploader: one(user, {
+		fields: [matchMedia.uploadedBy],
 		references: [user.id],
 	}),
 }));
@@ -249,3 +283,6 @@ export type NewMatchPlayerRecord = typeof matchPlayers.$inferInsert;
 
 export type ClipEditOperationRecord = typeof clipEditOperations.$inferSelect;
 export type NewClipEditOperationRecord = typeof clipEditOperations.$inferInsert;
+
+export type MatchMediaRecord = typeof matchMedia.$inferSelect;
+export type NewMatchMediaRecord = typeof matchMedia.$inferInsert;

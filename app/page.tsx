@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { usePlayer } from "./hooks/usePlayer";
@@ -13,11 +13,13 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { UserGroupIcon, Add01Icon, Copy01Icon, Tick01Icon, Video01Icon, QrCode01Icon } from "@hugeicons/core-free-icons";
-import { LobbyListResponse, LobbyListItemWithConfig } from "./types/lobby";
+import { UserGroupIcon, Add01Icon, Copy01Icon, Tick01Icon, QrCode01Icon } from "@hugeicons/core-free-icons";
+import { LobbyListItemWithConfig, LobbyStatus } from "./types/lobby";
 import { MatchConfig, DEFAULT_MATCH_CONFIG } from "./types/match";
 import { MatchModifierBadges } from "./components/MatchModifierBadges";
 import { UserMenu } from "./components/UserMenu";
+import type { WSMessage, LobbiesUpdateMessage, LobbyInfo } from "@/websocket/types";
+import { createMessage } from "@/websocket/types";
 
 export default function MatchmakingPage() {
 	const router = useRouter();
@@ -52,22 +54,83 @@ export default function MatchmakingPage() {
 	const [joinCode, setJoinCode] = useState("");
 	const [isJoining, setIsJoining] = useState(false);
 
-	const fetchLobbies = useCallback(async () => {
-		try {
-			const response = await fetch("/api/lobbies?status=waiting");
-			if (!response.ok) throw new Error("Failed to fetch lobbies");
-			const data: LobbyListResponse = await response.json();
-			setLobbies(data.lobbies);
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Failed to load lobbies");
+	const wsRef = useRef<WebSocket | null>(null);
+	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const mountedRef = useRef(true);
+
+	const connectWebSocket = useCallback(() => {
+		const url = process.env.NEXT_PUBLIC_WS_URL;
+		if (!url || !mountedRef.current) return;
+
+		if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+			return;
 		}
+
+		const ws = new WebSocket(url);
+		wsRef.current = ws;
+
+		ws.onopen = () => {
+			if (!mountedRef.current) {
+				ws.close();
+				return;
+			}
+			ws.send(JSON.stringify(createMessage("subscribe_lobbies")));
+		};
+
+		ws.onmessage = (event) => {
+			try {
+				const message = JSON.parse(event.data) as WSMessage;
+				if (message.type === "lobbies_update") {
+					const { lobbies } = (message as LobbiesUpdateMessage).payload;
+					setLobbies(
+						lobbies.map((l: LobbyInfo) => ({
+							id: l.id,
+							name: l.name,
+							joinCode: l.joinCode,
+							hostUsername: l.hostUsername,
+							playerCount: l.playerCount,
+							maxPlayers: l.maxPlayers,
+							status: l.status as LobbyStatus,
+							createdAt: new Date(l.createdAt),
+							matchConfig: l.matchConfig,
+						}))
+					);
+				}
+			} catch (e) {
+				console.error("[WS] Parse error:", e);
+			}
+		};
+
+		ws.onclose = () => {
+			if (!mountedRef.current) return;
+			wsRef.current = null;
+			reconnectTimeoutRef.current = setTimeout(() => {
+				if (mountedRef.current) {
+					connectWebSocket();
+				}
+			}, 2000);
+		};
+
+		ws.onerror = () => {
+			// silently ignore because onclose will handle reconnect
+		};
 	}, []);
 
 	useEffect(() => {
-		fetchLobbies();
-		const interval = setInterval(fetchLobbies, 5000);
-		return () => clearInterval(interval);
-	}, [fetchLobbies]);
+		mountedRef.current = true;
+		connectWebSocket();
+
+		return () => {
+			mountedRef.current = false;
+			if (reconnectTimeoutRef.current) {
+				clearTimeout(reconnectTimeoutRef.current);
+			}
+			if (wsRef.current) {
+				wsRef.current.close();
+				wsRef.current = null;
+			}
+		};
+	}, [connectWebSocket]);
 
 	const handleCreateLobby = async () => {
 		if (!isAuthenticated || !lobbyName.trim()) return;

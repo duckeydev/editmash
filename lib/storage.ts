@@ -1,8 +1,14 @@
 import { eq, and, desc } from "drizzle-orm";
-import { db, lobbies, lobbyPlayers, matches, matchPlayers, clipEditOperations, user } from "./db";
+import { db, lobbies, lobbyPlayers, matches, matchPlayers, clipEditOperations, user, matchMedia } from "./db";
 import type { Lobby, LobbyPlayer, LobbyStatus, LobbyListItemWithConfig } from "../app/types/lobby";
 import type { Match, MatchStatus, MatchConfig, ClipEditOperation } from "../app/types/match";
 import type { TimelineState, Clip, Track } from "../app/types/timeline";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str: string): boolean {
+	return UUID_REGEX.test(str);
+}
 
 function generateJoinCode(): string {
 	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -43,6 +49,10 @@ export async function createLobby(
 }
 
 export async function getLobbyById(lobbyId: string): Promise<Lobby | null> {
+	if (!isValidUUID(lobbyId)) {
+		return null;
+	}
+
 	const database = db();
 
 	const [lobbyRecord] = await database.select().from(lobbies).where(eq(lobbies.id, lobbyId)).limit(1);
@@ -554,6 +564,11 @@ function mapMatchRecordToMatch(
 }
 
 // Cleanup functions
+
+export async function deleteMatchMedia(matchId: string): Promise<void> {
+	const database = db();
+	await database.delete(matchMedia).where(eq(matchMedia.matchId, matchId));
+}
 
 export async function cleanupOldLobbies(olderThanHours: number = 24): Promise<number> {
 	const database = db();

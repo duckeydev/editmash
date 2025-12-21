@@ -9,7 +9,7 @@ interface RouteParams {
 	}>;
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams): Promise<NextResponse<MatchStateResponse | { error: string }>> {
+export async function GET(request: NextRequest, { params }: RouteParams): Promise<NextResponse<MatchStateResponse | { error: string } | { redirect: string }>> {
 	try {
 		const { matchId } = await params;
 
@@ -21,6 +21,10 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
 
 		if (!match) {
 			return NextResponse.json({ error: "Match not found" }, { status: 404 });
+		}
+
+		if (match.status === "completed" || match.status === "rendering" || match.status === "failed") {
+			return NextResponse.json({ redirect: `/results/${matchId}` });
 		}
 
 		let timeRemaining: number | null = null;

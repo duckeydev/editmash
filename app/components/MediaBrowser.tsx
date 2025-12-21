@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { mediaStore, MediaItem } from "../store/mediaStore";
+import { mediaStore, MediaItem, generateThumbnail, DEFAULT_IMAGE_DURATION } from "../store/mediaStore";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Image01Icon, Video01Icon, MusicNote01Icon } from "@hugeicons/core-free-icons";
 import { validateFile, getAcceptAttribute } from "@/lib/validation";
 import { toast } from "sonner";
 import { useAudioWaveform } from "../hooks/useAudioWaveform";
-
-const DEFAULT_IMAGE_DURATION = 2;
+import { useMatchWebSocketOptional } from "./MatchWS";
 
 let currentDragItem: MediaItem | null = null;
 
@@ -81,6 +80,8 @@ export default function MediaBrowser() {
 	const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const matchWs = useMatchWebSocketOptional();
+
 	const folders = ["All", "Footage", "Audio", "Graphics", "Titles", "Effects"];
 
 	useEffect(() => {
@@ -111,6 +112,42 @@ export default function MediaBrowser() {
 	const handleContextMenu = (e: React.MouseEvent) => {
 		e.preventDefault();
 		setContextMenu({ x: e.clientX, y: e.clientY });
+	};
+
+	const saveMediaToDatabase = async (tempId: string, name: string, type: string, url: string, fileId?: string): Promise<string | null> => {
+		if (!matchWs?.matchId) return null;
+
+		try {
+			const response = await fetch(`/api/matches/${matchWs.matchId}/media`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name, type, url, fileId }),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				console.error("Failed to save media to database:", {
+					status: response.status,
+					statusText: response.statusText,
+					error: errorData,
+					tempId,
+					name,
+				});
+				return null;
+			}
+
+			const data = await response.json();
+			const dbId = data.id;
+
+			if (dbId && dbId !== tempId) {
+				mediaStore.updateItemId(tempId, dbId);
+			}
+
+			return dbId ?? null;
+		} catch (error) {
+			console.error("Error saving media to database:", error, { tempId, name });
+			return null;
+		}
 	};
 
 	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,34 +186,7 @@ export default function MediaBrowser() {
 				});
 
 				img.addEventListener("load", async () => {
-					const canvas = document.createElement("canvas");
-					canvas.width = 320;
-					canvas.height = 180;
-					const ctx = canvas.getContext("2d");
-
-					let thumbnail: string | undefined;
-					if (ctx) {
-						const imgAspect = img.naturalWidth / img.naturalHeight;
-						const thumbAspect = canvas.width / canvas.height;
-
-						let drawWidth, drawHeight, drawX, drawY;
-						if (imgAspect > thumbAspect) {
-							drawWidth = canvas.width;
-							drawHeight = canvas.width / imgAspect;
-							drawX = 0;
-							drawY = (canvas.height - drawHeight) / 2;
-						} else {
-							drawHeight = canvas.height;
-							drawWidth = canvas.height * imgAspect;
-							drawX = (canvas.width - drawWidth) / 2;
-							drawY = 0;
-						}
-
-						ctx.fillStyle = "#000";
-						ctx.fillRect(0, 0, canvas.width, canvas.height);
-						ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-						thumbnail = canvas.toDataURL("image/jpeg", 0.7);
-					}
+					const thumbnail = generateThumbnail(img, img.naturalWidth, img.naturalHeight);
 
 					const mediaItem: MediaItem = {
 						id: itemId,
@@ -229,6 +239,18 @@ export default function MediaBrowser() {
 							uploadProgress: 100,
 						});
 
+						const dbId = await saveMediaToDatabase(itemId, file.name, type, data.url, data.fileId);
+						if (!dbId) {
+							toast.warning("Media uploaded but may not persist after refresh", {
+								description: file.name,
+							});
+						} else if (matchWs?.status === "connected") {
+							const updatedItem = mediaStore.getItemById(dbId);
+							if (updatedItem) {
+								matchWs.broadcastMediaUploaded({ ...updatedItem, url: data.url, fileId: data.fileId });
+							}
+						}
+
 						URL.revokeObjectURL(tempUrl);
 					} catch (error) {
 						console.error("Error uploading to B2:", error);
@@ -268,20 +290,12 @@ export default function MediaBrowser() {
 
 				if (type === "video") {
 					const video = element as HTMLVideoElement;
-					const canvas = document.createElement("canvas");
-					canvas.width = 320;
-					canvas.height = 180;
-					const ctx = canvas.getContext("2d");
-
 					video.currentTime = 0.1;
 					video.addEventListener(
 						"seeked",
 						() => {
-							if (ctx) {
-								ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-								const thumbnail = canvas.toDataURL("image/jpeg", 0.7);
-								mediaStore.updateItem(itemId, { thumbnail });
-							}
+							const thumbnail = generateThumbnail(video, video.videoWidth, video.videoHeight);
+							mediaStore.updateItem(itemId, { thumbnail });
 						},
 						{ once: true }
 					);
@@ -324,6 +338,18 @@ export default function MediaBrowser() {
 						isUploading: false,
 						uploadProgress: 100,
 					});
+
+					const dbId = await saveMediaToDatabase(itemId, file.name, type, data.url, data.fileId);
+					if (!dbId) {
+						toast.warning("Media uploaded but may not persist after refresh", {
+							description: file.name,
+						});
+					} else if (matchWs?.status === "connected") {
+						const updatedItem = mediaStore.getItemById(dbId);
+						if (updatedItem) {
+							matchWs.broadcastMediaUploaded({ ...updatedItem, url: data.url, fileId: data.fileId });
+						}
+					}
 
 					URL.revokeObjectURL(tempUrl);
 				} catch (error) {
@@ -405,9 +431,14 @@ export default function MediaBrowser() {
 													)}
 												</div>
 											)}
-											{item.uploadError && (
+											{item.isDownloading && (
+												<div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10 p-2">
+													<div className="text-xs text-white mb-2">Downloading...</div>
+												</div>
+											)}
+											{(item.uploadError || item.downloadError) && (
 												<div className="absolute inset-0 bg-red-900/70 flex items-center justify-center z-10 p-2">
-													<div className="text-xs text-white text-center">{item.uploadError}</div>
+													<div className="text-xs text-white text-center">{item.uploadError || item.downloadError}</div>
 												</div>
 											)}
 											{item.type === "video" && item.thumbnail ? (

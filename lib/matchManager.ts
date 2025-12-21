@@ -215,6 +215,8 @@ async function triggerRender(matchId: string): Promise<void> {
 
 		await storage.updateMatchRender(matchId, undefined, outputPath);
 		await storage.updateMatchStatus(matchId, "completed");
+
+		await storage.deleteMatchMedia(matchId);
 		return;
 	}
 
@@ -234,6 +236,8 @@ async function triggerRender(matchId: string): Promise<void> {
 
 		await storage.updateMatchRender(matchId, matchId, outputPath);
 		await storage.updateMatchStatus(matchId, "completed");
+
+		await storage.deleteMatchMedia(matchId);
 
 		await storage.updateLobbyStatus(match.lobbyId, "closed");
 	} catch (error) {

@@ -13,7 +13,7 @@ interface TopBarProps {
 	onSaveTimeline?: () => void;
 	onImportTimeline?: (file: File) => void;
 	timeRemaining?: number | null;
-	matchInfo?: { playerCount: number };
+	playersOnline?: number;
 }
 
 export default function TopBar({
@@ -25,7 +25,7 @@ export default function TopBar({
 	onSaveTimeline,
 	onImportTimeline,
 	timeRemaining,
-	matchInfo,
+	playersOnline,
 }: TopBarProps) {
 	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,10 +176,10 @@ export default function TopBar({
 			</div>
 
 			<div className="flex items-center gap-2">
-				{matchInfo && (
+				{playersOnline !== undefined && (
 					<div className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
 						<HugeiconsIcon icon={UserGroupIcon} size={12} />
-						{matchInfo.playerCount}
+						{playersOnline}
 					</div>
 				)}
 
@@ -193,38 +193,6 @@ export default function TopBar({
 					</div>
 				)}
 			</div>
-
-			{/* rightside window controls but idk if i wanna keep them so commented for now */}
-
-			{/* <div className="flex items-center">
-                <button className="flex h-12 w-14 items-center justify-center hover:bg-zinc-700/50 transition-colors">
-                    <svg width="12" height="2" viewBox="0 0 12 2" fill="none">
-                        <rect width="12" height="2" fill="currentColor" />
-                    </svg>
-                </button>
-                <button className="flex h-12 w-14 items-center justify-center hover:bg-zinc-700/50 transition-colors">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <rect
-                            x="0.5"
-                            y="0.5"
-                            width="11"
-                            height="11"
-                            stroke="currentColor"
-                            strokeWidth="1"
-                        />
-                    </svg>
-                </button>
-                <button className="flex h-12 w-14 items-center justify-center hover:bg-red-600 transition-colors">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path
-                            d="M2 2L10 10M10 2L2 10"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                        />
-                    </svg>
-                </button>
-            </div> */}
 		</div>
 	);
 }

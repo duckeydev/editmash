@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { addPlayerToLobby, getLobbyById, getLobbyByJoinCode } from "@/lib/storage";
 import { JoinLobbyResponse } from "@/app/types/lobby";
 import { getServerSession } from "@/lib/auth";
+import { notifyLobbyChange } from "@/lib/wsNotify";
 
 interface RouteParams {
 	params: Promise<{
@@ -38,6 +39,8 @@ export async function POST(request: NextRequest, { params }: RouteParams): Promi
 		if (!result.success) {
 			return NextResponse.json(result, { status: 400 });
 		}
+
+		notifyLobbyChange({ lobbyId: lobby.id, userId, action: "player_joined" });
 
 		const updatedLobby = await getLobbyById(lobby.id);
 

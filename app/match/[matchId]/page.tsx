@@ -5,8 +5,13 @@ import { useRouter } from "next/navigation";
 import { usePlayer } from "@/app/hooks/usePlayer";
 import TopBar from "@/app/components/TopBar";
 import MainLayout, { MainLayoutRef } from "@/app/components/MainLayout";
+import { MatchWS, useMatchWebSocketOptional } from "@/app/components/MatchWS";
 import { TimelineState } from "@/app/types/timeline";
 import { Match, MatchStatus } from "@/app/types/match";
+import { mediaStore } from "@/app/store/mediaStore";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { WifiOff02Icon } from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 
 interface MatchResponse {
 	match: Match;
@@ -21,7 +26,12 @@ interface MatchStatusResponse {
 export default function MatchPage({ params }: { params: Promise<{ matchId: string }> }) {
 	const { matchId } = use(params);
 	const router = useRouter();
-	const { playerId, isLoading: playerLoading } = usePlayer();
+	const { playerId, username, isLoading: playerLoading } = usePlayer();
+
+	const stablePlayerRef = useRef<{ playerId: string; username: string } | null>(null);
+	if (playerId && username && !stablePlayerRef.current) {
+		stablePlayerRef.current = { playerId, username };
+	}
 
 	const [match, setMatch] = useState<Match | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +49,7 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 	const fetchMatch = useCallback(async () => {
 		try {
 			const response = await fetch(`/api/matches/${matchId}`);
+
 			if (!response.ok) {
 				if (response.status === 404) {
 					setError("Match not found");
@@ -46,11 +57,25 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 				}
 				throw new Error("Failed to fetch match");
 			}
-			const data: MatchResponse = await response.json();
-			setMatch(data.match);
 
-			if (data.match.timeline && mainLayoutRef.current) {
-				mainLayoutRef.current.loadTimeline(data.match.timeline);
+			const data = await response.json();
+
+			if (data.redirect) {
+				router.push(data.redirect);
+				return;
+			}
+
+			const matchData = data as MatchResponse;
+
+			if (matchData.match.status === "completed" || matchData.match.status === "rendering" || matchData.match.status === "failed") {
+				router.push(`/results/${matchId}`);
+				return;
+			}
+
+			setMatch(matchData.match);
+
+			if (matchData.match.timeline && mainLayoutRef.current) {
+				mainLayoutRef.current.loadTimeline(matchData.match.timeline);
 				setTimelineLoaded(true);
 			}
 
@@ -60,8 +85,24 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 		} finally {
 			setIsLoading(false);
 		}
+	}, [matchId, router]);
+
+	const loadMatchMedia = useCallback(async () => {
+		try {
+			const response = await fetch(`/api/matches/${matchId}/media`);
+			if (response.ok) {
+				const data = await response.json();
+				for (const media of data.media) {
+					if (!mediaStore.getItemById(media.id)) {
+						mediaStore.addRemoteItem(media.id, media.name, media.type, media.url);
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error loading match media:", error);
+		}
 	}, [matchId]);
- 
+
 	const fetchStatus = useCallback(async () => {
 		try {
 			const response = await fetch(`/api/matches/${matchId}/status`);
@@ -74,9 +115,7 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 					router.push(`/results/${matchId}`);
 				}
 			}
-		} catch {
-
-		}
+		} catch {}
 	}, [matchId, router]);
 
 	useEffect(() => {
@@ -95,7 +134,8 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 
 	useEffect(() => {
 		fetchMatch();
-	}, [fetchMatch]);
+		loadMatchMedia();
+	}, [fetchMatch, loadMatchMedia]);
 
 	useEffect(() => {
 		fetchStatus();
@@ -103,25 +143,7 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 		return () => clearInterval(interval);
 	}, [fetchStatus]);
 
-	const syncTimelineToServer = useCallback(
-		async (timeline: TimelineState) => {
-			if (!playerId) return;
-
-			try {
-				await fetch(`/api/matches/${matchId}/timeline`, {
-					method: "PUT",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						playerId,
-						timelineState: timeline,
-					}),
-				});
-			} catch (err) {
-				console.error("Failed to sync timeline:", err);
-			}
-		},
-		[matchId, playerId]
-	);
+	const syncTimelineToServer = useCallback(async (_timeline: TimelineState) => {}, []);
 
 	const handleTimelineStateChange = useCallback(
 		(timeline: TimelineState | null) => {
@@ -132,7 +154,23 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 		[syncTimelineToServer, timelineLoaded]
 	);
 
-	if (playerLoading || isLoading) {
+	const handleRemoteMediaUploaded = useCallback((media: { name: string; uploadedBy: { username: string } }) => {
+		toast.info(`${media.uploadedBy.username} uploaded ${media.name}`);
+	}, []);
+
+	const handlePlayerJoined = useCallback((player: { username: string }) => {
+		toast.info(`${player.username} joined the match`);
+	}, []);
+
+	const handlePlayerLeft = useCallback(() => {
+		toast.info(`A player left the match`);
+	}, []);
+
+	const handleConnectionFailed = useCallback(() => {
+		toast.error("Connection to server failed after multiple attempts");
+	}, []);
+
+	if (playerLoading || isLoading || !stablePlayerRef.current) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="animate-pulse text-muted-foreground">Loading match...</div>
@@ -154,7 +192,53 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 	}
 
 	return (
-		<div className="h-screen flex flex-col">
+		<MatchWS
+			matchId={matchId}
+			userId={stablePlayerRef.current.playerId}
+			username={stablePlayerRef.current.username}
+			onRemoteMediaUploaded={handleRemoteMediaUploaded}
+			onPlayerJoined={handlePlayerJoined}
+			onPlayerLeft={handlePlayerLeft}
+			onConnectionFailed={handleConnectionFailed}
+		>
+			<MatchContent
+				showMedia={showMedia}
+				showEffects={showEffects}
+				setShowMedia={setShowMedia}
+				setShowEffects={setShowEffects}
+				localTimeRemaining={localTimeRemaining}
+				mainLayoutRef={mainLayoutRef}
+				onTimelineStateChange={handleTimelineStateChange}
+			/>
+		</MatchWS>
+	);
+}
+
+interface MatchContentProps {
+	showMedia: boolean;
+	showEffects: boolean;
+	setShowMedia: (show: boolean) => void;
+	setShowEffects: (show: boolean) => void;
+	localTimeRemaining: number | null;
+	mainLayoutRef: React.RefObject<MainLayoutRef | null>;
+	onTimelineStateChange: (timeline: TimelineState | null) => void;
+}
+
+function MatchContent({
+	showMedia,
+	showEffects,
+	setShowMedia,
+	setShowEffects,
+	localTimeRemaining,
+	mainLayoutRef,
+	onTimelineStateChange,
+}: MatchContentProps) {
+	const ws = useMatchWebSocketOptional();
+	const isDisconnected = ws?.status === "disconnected" || ws?.status === "connecting";
+	const isFailed = ws?.status === "failed";
+
+	return (
+		<div className="h-screen flex flex-col relative">
 			<TopBar
 				showMedia={showMedia}
 				showEffects={showEffects}
@@ -163,16 +247,37 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 				onRender={() => {
 					alert("Match will render automatically when time expires!");
 				}}
-				onSaveTimeline={() => {
-					alert("Match progress is saved automatically!");
-				}}
-				onImportTimeline={() => {
-					alert("Import is disabled during matches.");
-				}}
 				timeRemaining={localTimeRemaining}
-				matchInfo={match ? { playerCount: match.players.length } : undefined}
+				playersOnline={ws?.playersOnline}
 			/>
-			<MainLayout ref={mainLayoutRef} showMedia={showMedia} showEffects={showEffects} onTimelineStateChange={handleTimelineStateChange} />
+			<MainLayout ref={mainLayoutRef} showMedia={showMedia} showEffects={showEffects} onTimelineStateChange={onTimelineStateChange} />
+
+			{isFailed && (
+				<div className="fixed inset-0 z-100 flex items-center justify-center bg-background/90 backdrop-blur-xl">
+					<div className="flex flex-col items-center gap-4 text-center">
+						<HugeiconsIcon icon={WifiOff02Icon} size={128} className="text-red-500" />
+						<span className="text-lg font-semibold text-destructive">Connection Failed</span>
+						<span className="text-sm text-muted-foreground max-w-xs">
+							Unable to connect to the server after multiple attempts. Your changes may not sync with other players.
+						</span>
+						<button
+							onClick={() => window.location.reload()}
+							className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+						>
+							Reload
+						</button>
+					</div>
+				</div>
+			)}
+
+			{isDisconnected && !isFailed && (
+				<div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 backdrop-blur-xl">
+					<div className="flex flex-col items-center gap-3">
+						<HugeiconsIcon icon={WifiOff02Icon} size={128} className="text-red-500 animate-pulse" />
+						<span className="text-lg text-muted-foreground">{ws?.status === "connecting" ? "Connecting..." : "Reconnecting..."}</span>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

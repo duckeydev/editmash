@@ -4,6 +4,7 @@ import { validateMatchConfig } from "@/lib/constraints";
 import { DEFAULT_MATCH_CONFIG, MatchConfig } from "@/app/types/match";
 import { CreateLobbyRequest, CreateLobbyResponse, LobbyListResponse, LobbyStatus } from "@/app/types/lobby";
 import { getServerSession } from "@/lib/auth";
+import { notifyLobbyChange } from "@/lib/wsNotify";
 
 export async function POST(request: NextRequest): Promise<NextResponse<CreateLobbyResponse | { error: string }>> {
 	try {
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateLob
 		}
 
 		const result = await createLobby(body.name, matchConfig, userId);
+
+		notifyLobbyChange({ lobbyId: result.lobbyId, userId, action: "lobby_created" });
 
 		return NextResponse.json({
 			lobbyId: result.lobbyId,

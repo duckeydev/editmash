@@ -184,7 +184,7 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 							<HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
 						</Button>
 						<div className="flex items-center gap-3">
-							<HugeiconsIcon icon={Video01Icon} className="w-6 h-6 text-primary" />
+							<img src="/editmash.svg" alt="EditMash Logo" className="w-6 h-6" />
 							<h1 className="text-xl font-bold">{lobby.name}</h1>
 						</div>
 					</div>
@@ -248,6 +248,17 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 								<span className="font-mono text-base">{lobby.joinCode}</span>
 							</Button>
 
+							<Button
+								variant="outline"
+								size="lg"
+								className="w-full gap-2 text-destructive-foreground"
+								onClick={handleLeaveLobby}
+								disabled={isLeaving}
+							>
+								<HugeiconsIcon icon={Logout01Icon} className="w-5 h-5" />
+								{isLeaving ? "Leaving..." : "Leave"}
+							</Button>
+
 							{isHost ? (
 								<Button size="lg" className="w-full gap-2" onClick={handleStartMatch} disabled={!canStart || isStarting}>
 									<HugeiconsIcon icon={PlayIcon} className="w-5 h-5" />
@@ -259,17 +270,6 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 									<AlertDescription className="text-amber-900 dark:text-amber-100">Waiting for host to start the match...</AlertDescription>
 								</Alert>
 							)}
-
-							<Button
-								variant="outline"
-								size="lg"
-								className="w-full gap-2 text-destructive-foreground"
-								onClick={handleLeaveLobby}
-								disabled={isLeaving}
-							>
-								<HugeiconsIcon icon={Logout01Icon} className="w-5 h-5" />
-								{isLeaving ? "Leaving..." : "Leave"}
-							</Button>
 						</div>
 					</div>
 				</div>
