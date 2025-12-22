@@ -119,6 +119,7 @@ export default function MatchmakingPage() {
 								username: p.username,
 								image: p.image,
 							})) ?? [],
+							matchEndsAt: l.matchEndsAt ? new Date(l.matchEndsAt) : null,
 						}))
 					);
 				}
@@ -545,7 +546,36 @@ export default function MatchmakingPage() {
 
 function LobbyCard({ lobby, onJoin, isJoining }: { lobby: LobbyListItemWithConfig; onJoin: () => void; isJoining: boolean }) {
 	const [copied, setCopied] = useState(false);
+	const [timeLeft, setTimeLeft] = useState<string | null>(null);
 	const isRunning = lobby.status === "in_match" || lobby.status === "starting";
+
+	useEffect(() => {
+		if (!isRunning || !lobby.matchEndsAt) {
+			setTimeLeft(null);
+			return;
+		}
+
+		const updateTimeLeft = () => {
+			const now = new Date();
+			const endsAt = new Date(lobby.matchEndsAt!);
+			const diffMs = endsAt.getTime() - now.getTime();
+
+			if (diffMs <= 0) {
+				setTimeLeft("0:00");
+				return;
+			}
+
+			const totalSeconds = Math.floor(diffMs / 1000);
+			const minutes = Math.floor(totalSeconds / 60);
+			const seconds = totalSeconds % 60;
+			setTimeLeft(`${minutes}:${seconds.toString().padStart(2, "0")}`);
+		};
+
+		updateTimeLeft();
+		const interval = setInterval(updateTimeLeft, 1000);
+
+		return () => clearInterval(interval);
+	}, [isRunning, lobby.matchEndsAt]);
 
 	const copyCode = (e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -593,8 +623,8 @@ function LobbyCard({ lobby, onJoin, isJoining }: { lobby: LobbyListItemWithConfi
 						<div className="flex items-center gap-2">
 							<h3 className="text-base font-semibold truncate">{lobby.name}</h3>
 							{isRunning && (
-								<Badge variant="secondary" className="text-xs bg-yellow-500/20 text-yellow-600 border-yellow-500/30 shrink-0">
-									Running
+								<Badge variant="secondary" className="text-xs bg-yellow-500/20 text-yellow-600 border-yellow-500/30 shrink-0 tabular-nums">
+									{timeLeft ?? "Running"}
 								</Badge>
 							)}
 						</div>

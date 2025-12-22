@@ -545,6 +545,7 @@ export function toLobbyInfoProto(lobby: {
 		maxClipsPerUser: number;
 		constraints: string[];
 	};
+	matchEndsAt?: string | null;
 }): LobbyInfoProto {
 	return create(LobbyInfoSchema, {
 		id: lobby.id,
@@ -564,6 +565,7 @@ export function toLobbyInfoProto(lobby: {
 			})
 		),
 		matchConfig: create(MatchConfigSchema, lobby.matchConfig),
+		matchEndsAt: lobby.matchEndsAt ?? undefined,
 	});
 }
 

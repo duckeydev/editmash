@@ -243,6 +243,7 @@ message LobbyInfo {
   string created_at = 9;
   repeated PlayerInfo players = 10;
   MatchConfig match_config = 11;
+  optional string match_ends_at = 12;
 }
 
 message SubscribeLobbiesPayload {}

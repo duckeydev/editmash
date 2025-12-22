@@ -58,6 +58,7 @@ export interface LobbyListItem {
 	isSystemLobby: boolean;
 	createdAt: Date;
 	players: { id: string; username: string; image?: string | null }[];
+	matchEndsAt?: Date | null;
 }
 
 export interface LobbyListItemWithConfig extends LobbyListItem {

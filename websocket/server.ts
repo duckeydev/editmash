@@ -150,6 +150,7 @@ async function fetchLobbies() {
 				maxClipsPerUser: number;
 				constraints: string[];
 			};
+			matchEndsAt?: string | null;
 		}[] = [];
 
 		if (waitingRes.ok) {
@@ -167,6 +168,7 @@ async function fetchLobbies() {
 					createdAt: lobby.createdAt,
 					players: lobby.players ?? [],
 					matchConfig: lobby.matchConfig,
+					matchEndsAt: lobby.matchEndsAt ?? null,
 				}))
 			);
 		}
@@ -186,6 +188,7 @@ async function fetchLobbies() {
 					createdAt: lobby.createdAt,
 					players: lobby.players ?? [],
 					matchConfig: lobby.matchConfig,
+					matchEndsAt: lobby.matchEndsAt ?? null,
 				}))
 			);
 		}

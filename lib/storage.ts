@@ -224,6 +224,16 @@ export async function listLobbies(status?: LobbyStatus): Promise<LobbyListItemWi
 
 		const host = playersWithUsers.find((p) => p.isHost);
 
+		let matchEndsAt: Date | null = null;
+		if (record.matchId && (record.status === "in_match" || record.status === "starting")) {
+			const [matchRecord] = await database
+				.select({ endsAt: matches.endsAt })
+				.from(matches)
+				.where(eq(matches.id, record.matchId))
+				.limit(1);
+			matchEndsAt = matchRecord?.endsAt ?? null;
+		}
+
 		result.push({
 			id: record.id,
 			name: record.name,
@@ -240,6 +250,7 @@ export async function listLobbies(status?: LobbyStatus): Promise<LobbyListItemWi
 				username: p.userName || "Unknown",
 				image: p.userImage,
 			})),
+			matchEndsAt,
 		});
 	}
 
