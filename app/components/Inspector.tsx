@@ -183,7 +183,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Zoom */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Zoom</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Zoom</Label>
 													<span className="text-muted-foreground/60 text-xs">X</span>
 													<DragNumberInput
 														value={video.zoom.x}
@@ -241,7 +241,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Position */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Position</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Position</Label>
 													<span className="text-muted-foreground/60 text-xs">X</span>
 													<DragNumberInput
 														value={video.position.x}
@@ -276,7 +276,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Rotation Angle */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Rotation</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Rotation</Label>
 													<Slider
 														value={[video.rotation]}
 														onValueChange={([value]) => {
@@ -303,7 +303,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Flip */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Flip</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Flip</Label>
 													<button
 														onClick={() => {
 															updateVideoProperty({
@@ -368,7 +368,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Left */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Left</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Left</Label>
 													<Slider
 														value={[video.crop.left]}
 														onValueChange={([value]) => {
@@ -405,7 +405,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Right */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Right</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Right</Label>
 													<Slider
 														value={[video.crop.right]}
 														onValueChange={([value]) => {
@@ -442,7 +442,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Top */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Top</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Top</Label>
 													<Slider
 														value={[video.crop.top]}
 														onValueChange={([value]) => {
@@ -479,7 +479,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Crop Bottom */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Bottom</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Bottom</Label>
 													<Slider
 														value={[video.crop.bottom]}
 														onValueChange={([value]) => {
@@ -538,7 +538,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Speed */}
 											{clip && (clip.type === "video" || clip.type === "image") && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Speed</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Speed</Label>
 													<DragNumberInput
 														value={video.speed * 100}
 														onChange={(newValue) => {
@@ -614,7 +614,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 										<div className="px-3 pb-2 space-y-2 border-t border-border">
 											{clip && clip.type === "audio" && (
 												<div className="pt-2 flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Volume</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Volume</Label>
 													<Slider
 														value={[audio.volume <= 0 ? -60 : 20 * Math.log10(audio.volume)]}
 														onValueChange={([value]) => {
@@ -648,7 +648,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Pan */}
 											{clip && clip.type === "audio" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Pan</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Pan</Label>
 													<Slider
 														value={[audio.pan * 100]}
 														onValueChange={([value]) => {
@@ -675,7 +675,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 											{/* Pitch */}
 											{clip && clip.type === "audio" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Pitch</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Pitch</Label>
 													<Slider
 														value={[audio.pitch]}
 														onValueChange={([value]) => {
@@ -702,7 +702,7 @@ export default function Inspector({ selectedClips, onClipUpdate, currentTime }: 
 
 											{clip && clip.type === "audio" && (
 												<div className="flex items-center gap-2">
-													<Label className="text-muted-foreground text-xs w-16 flex-shrink-0">Speed</Label>
+													<Label className="text-muted-foreground text-xs w-16 shrink-0">Speed</Label>
 													<DragNumberInput
 														value={Number((audio.speed * 100).toFixed(1))}
 														onChange={(newValue) => {

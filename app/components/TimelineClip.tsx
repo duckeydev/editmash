@@ -168,7 +168,7 @@ function TimelineClip({
 									key={i}
 									src={thumbnails[thumbnailIndex]}
 									alt=""
-									className="h-full object-cover flex-shrink-0"
+									className="h-full object-cover shrink-0"
 									style={{
 										width: `${thumbnailWidth}px`,
 										height: "100%",
@@ -230,7 +230,7 @@ function TimelineClip({
 					</div>
 				)}
 
-				<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+				<div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent pointer-events-none" />
 
 				<div className="relative h-full flex items-end px-2 pb-1 overflow-hidden">
 					<span className="text-xs text-white truncate drop-shadow-md">{clip.name}</span>
@@ -267,7 +267,7 @@ function TimelineClip({
 
 				{cutLinePosition !== null && (
 					<div
-						className="absolute top-0 h-full w-[2px] bg-red-500 pointer-events-none z-50"
+						className="absolute top-0 h-full w-0.5 bg-red-500 pointer-events-none z-50"
 						style={{
 							left: `${cutLinePosition}px`,
 							boxShadow: "0 0 4px rgba(239, 68, 68, 0.8)",

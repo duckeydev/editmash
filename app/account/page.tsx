@@ -15,7 +15,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
 	ArrowLeft01Icon,
-	Video01Icon,
 	UserIcon,
 	Mail01Icon,
 	Calendar01Icon,
@@ -420,7 +419,7 @@ export default function AccountPage() {
 								<Label className="text-muted-foreground text-xs uppercase tracking-wide">Highlight</Label>
 								<p className="text-xs text-muted-foreground/70">This color shows other players which clips you have selected</p>
 								<div className="flex items-center gap-3">
-									<div className="relative">
+									<div className="relative w-10 h-10">
 										<input
 											type="color"
 											value={highlightColor}
@@ -428,7 +427,10 @@ export default function AccountPage() {
 												setHighlightColor(e.target.value);
 												handleHighlightColorChange(e.target.value);
 											}}
-											className="w-10 h-10 rounded-lg cursor-pointer border border-border"
+											className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
+										/>
+										<div
+											className="w-full h-full rounded-lg border border-border pointer-events-none"
 											style={{ backgroundColor: highlightColor }}
 										/>
 									</div>
@@ -447,9 +449,7 @@ export default function AccountPage() {
 										className="w-28 font-mono text-sm"
 										maxLength={7}
 									/>
-									{isSavingHighlightColor && (
-										<HugeiconsIcon icon={Loading03Icon} className="w-4 h-4 animate-spin text-muted-foreground" />
-									)}
+									{isSavingHighlightColor && <HugeiconsIcon icon={Loading03Icon} className="w-4 h-4 animate-spin text-muted-foreground" />}
 								</div>
 							</div>
 						</CardContent>

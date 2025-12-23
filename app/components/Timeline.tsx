@@ -1629,8 +1629,8 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				</div>
 
 				<div className="flex-1 flex overflow-hidden relative">
-					<div className="w-32 flex-shrink-0 bg-card border-r border-border flex flex-col relative z-[70]">
-						<div className="h-8 border-b border-border flex items-center justify-center relative flex-shrink-0 bg-card z-10">
+					<div className="w-32 shrink-0 bg-card border-r border-border flex flex-col relative z-70">
+						<div className="h-8 border-b border-border flex items-center justify-center relative shrink-0 bg-card z-10">
 							<span className="text-sm text-foreground font-mono tabular-nums">
 								{Math.floor(currentTime / 60)
 									.toString()
