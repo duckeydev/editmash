@@ -15,34 +15,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 	const userId = session.user.id;
 
-	const existing = await db()
-		.select()
-		.from(videoLikes)
-		.where(and(eq(videoLikes.matchId, matchId), eq(videoLikes.userId, userId)))
-		.limit(1);
-
-	if (existing.length > 0) {
-		await db()
-			.delete(videoLikes)
-			.where(and(eq(videoLikes.matchId, matchId), eq(videoLikes.userId, userId)));
-
-		const countResult = await db()
-			.select({ count: sql<number>`count(*)::int` })
+	const result = await db().transaction(async (tx) => {
+		const existing = await tx
+			.select()
 			.from(videoLikes)
-			.where(eq(videoLikes.matchId, matchId));
+			.where(and(eq(videoLikes.matchId, matchId), eq(videoLikes.userId, userId)))
+			.limit(1);
 
-		return NextResponse.json({ liked: false, likeCount: countResult[0]?.count || 0 });
-	} else {
-		await db().insert(videoLikes).values({
-			matchId,
-			userId,
-		});
+		if (existing.length > 0) {
+			await tx.delete(videoLikes).where(and(eq(videoLikes.matchId, matchId), eq(videoLikes.userId, userId)));
 
-		const countResult = await db()
-			.select({ count: sql<number>`count(*)::int` })
-			.from(videoLikes)
-			.where(eq(videoLikes.matchId, matchId));
+			const countResult = await tx
+				.select({ count: sql<number>`count(*)::int` })
+				.from(videoLikes)
+				.where(eq(videoLikes.matchId, matchId));
 
-		return NextResponse.json({ liked: true, likeCount: countResult[0]?.count || 0 });
-	}
+			return { liked: false, likeCount: countResult[0]?.count || 0 };
+		} else {
+			await tx.insert(videoLikes).values({
+				matchId,
+				userId,
+			});
+
+			const countResult = await tx
+				.select({ count: sql<number>`count(*)::int` })
+				.from(videoLikes)
+				.where(eq(videoLikes.matchId, matchId));
+
+			return { liked: true, likeCount: countResult[0]?.count || 0 };
+		}
+	});
+
+	return NextResponse.json(result);
 }
