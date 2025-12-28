@@ -85,6 +85,10 @@ import {
 	ClipIdMappingSchema,
 	type ClipIdMappingResponse,
 	ClipIdMappingResponseSchema,
+	type ChatMessagePayload,
+	ChatMessagePayloadSchema,
+	type ChatBroadcastPayload,
+	ChatBroadcastPayloadSchema,
 } from "../src/gen/messages_pb";
 
 export {
@@ -136,6 +140,10 @@ export {
 	ClipIdMappingSchema,
 	type ClipIdMappingResponse,
 	ClipIdMappingResponseSchema,
+	type ChatMessagePayload,
+	ChatMessagePayloadSchema,
+	type ChatBroadcastPayload,
+	ChatBroadcastPayloadSchema,
 };
 
 export type WSMessage = WSMessageProto;
@@ -273,13 +281,13 @@ export function isZoneClipsMessage(msg: WSMessageProto): msg is WSMessageProto &
 	return msg.type === MessageType.ZONE_CLIPS && msg.payload?.case === "zoneClips";
 }
 
-export function createJoinMatchMessage(matchId: string, userId: string, username: string): WSMessageProto {
+export function createJoinMatchMessage(matchId: string, userId: string, username: string, userImage?: string, highlightColor?: string): WSMessageProto {
 	return create(WSMessageSchema, {
 		type: MessageType.JOIN_MATCH,
 		timestamp: BigInt(Date.now()),
 		payload: {
 			case: "joinMatch",
-			value: create(JoinMatchPayloadSchema, { matchId, userId, username }),
+			value: create(JoinMatchPayloadSchema, { matchId, userId, username, userImage, highlightColor: highlightColor || "#3b82f6" }),
 		},
 	});
 }
@@ -941,4 +949,62 @@ export function applyClipDelta(
 		if (props.cropLeft !== undefined) current.properties.cropLeft = props.cropLeft;
 		if (props.cropRight !== undefined) current.properties.cropRight = props.cropRight;
 	}
+}
+
+export function isChatMessage(msg: WSMessageProto): msg is WSMessageProto & { payload: { case: "chatMessage" } } {
+	return msg.type === MessageType.CHAT_MESSAGE && msg.payload?.case === "chatMessage";
+}
+
+export function isChatBroadcast(msg: WSMessageProto): msg is WSMessageProto & { payload: { case: "chatBroadcast" } } {
+	return msg.type === MessageType.CHAT_BROADCAST && msg.payload?.case === "chatBroadcast";
+}
+
+export function createChatMessage(matchId: string, message: string): WSMessageProto {
+	return create(WSMessageSchema, {
+		type: MessageType.CHAT_MESSAGE,
+		timestamp: BigInt(Date.now()),
+		payload: {
+			case: "chatMessage",
+			value: create(ChatMessagePayloadSchema, { matchId, message }),
+		},
+	});
+}
+
+export function createChatBroadcast(
+	matchId: string,
+	messageId: string,
+	userId: string,
+	username: string,
+	userImage: string | undefined,
+	highlightColor: string,
+	message: string,
+	timestamp: bigint
+): WSMessageProto {
+	return create(WSMessageSchema, {
+		type: MessageType.CHAT_BROADCAST,
+		timestamp: BigInt(Date.now()),
+		payload: {
+			case: "chatBroadcast",
+			value: create(ChatBroadcastPayloadSchema, {
+				matchId,
+				messageId,
+				userId,
+				username,
+				userImage,
+				highlightColor,
+				message,
+				timestamp,
+			}),
+		},
+	});
+}
+
+export interface ChatMessageData {
+	messageId: string;
+	userId: string;
+	username: string;
+	userImage?: string;
+	highlightColor: string;
+	message: string;
+	timestamp: number;
 }

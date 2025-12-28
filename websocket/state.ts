@@ -10,6 +10,8 @@ export interface WebSocketData {
 	matchId: string | null;
 	userId: string | null;
 	username: string | null;
+	userImage: string | null;
+	highlightColor: string | null;
 	subscribedToLobbies: boolean;
 	connectedAt: number;
 	lastPing: number;
@@ -60,6 +62,13 @@ export interface PlayerClipCount {
 	clipCount: number;
 }
 
+export interface PlayerInfoCache {
+	userId: string;
+	username: string;
+	userImage?: string;
+	highlightColor: string;
+}
+
 export const PORT = parseInt(process.env.WS_PORT || "3001", 10);
 export const IDLE_TIMEOUT = 120; // seconds
 export const WS_API_KEY = process.env.WS_API_KEY;
@@ -82,6 +91,14 @@ export const matchClipIdMaps = new Map<string, ClipIdMap>();
 export const matchConfigs = new Map<string, MatchConfigCache>();
 
 export const matchPlayerClipCounts = new Map<string, Map<string, number>>();
+
+export const matchPlayerInfos = new Map<string, Map<string, PlayerInfoCache>>();
+
+export const chatRateLimits = new Map<string, { lastMessageTime: number; messageCount: number; windowStart: number }>();
+
+export const CHAT_RATE_LIMIT_WINDOW = 10000; // 10 seconds
+export const CHAT_RATE_LIMIT_MAX_MESSAGES = 5; // max 5 messages per window
+export const CHAT_COOLDOWN_MS = 1000; // 1 second between messages
 
 export const pendingBatches = new Map<
 	string,

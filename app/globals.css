@@ -610,3 +610,27 @@
 		transform: translateX(-50%) translateY(-40px);
 	}
 }
+
+.chat-scrollbar::-webkit-scrollbar {
+	width: 4px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+	background: oklch(1 0 0 / 0.2);
+	border-radius: 2px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: oklch(1 0 0 / 0.4);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+	.chat-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: oklch(1 0 0 / 0.2) transparent;
+	}
+}

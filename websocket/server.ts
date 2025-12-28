@@ -30,6 +30,7 @@ import {
 	isClipSelectionMessage,
 	isZoneSubscribeMessage,
 	isClipBatchUpdateMessage,
+	isChatMessage,
 	createPlayerLeftMessage,
 	createMatchStatusMessage,
 	createLobbiesUpdateMessage,
@@ -55,6 +56,7 @@ import {
 	handleTimelineSync,
 	handleClipSelection,
 	handleZoneSubscribe,
+	handleChatMessage,
 } from "./handlers";
 
 function secureCompare(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -150,6 +152,11 @@ function handleMessage(ws: ServerWebSocket<WebSocketData>, rawMessage: string | 
 
 		if (isUnsubscribeLobbiesMessage(message)) {
 			handleUnsubscribeLobbies(ws);
+			return;
+		}
+
+		if (isChatMessage(message)) {
+			handleChatMessage(ws, message);
 			return;
 		}
 
@@ -282,6 +289,8 @@ const server = Bun.serve({
 					matchId: null,
 					userId: null,
 					username: null,
+					userImage: null,
+					highlightColor: null,
 					subscribedToLobbies: false,
 					connectedAt: Date.now(),
 					lastPing: Date.now(),

@@ -14,6 +14,8 @@ interface MatchConnection {
 	matchId: string;
 	userId: string;
 	username: string;
+	userImage?: string;
+	highlightColor: string;
 	ws: WebSocket | null;
 	status: ConnectionStatus;
 	reconnectTimeout: ReturnType<typeof setTimeout> | null;
@@ -27,7 +29,7 @@ interface MatchConnection {
 
 const connections = new Map<string, MatchConnection>();
 
-function getOrCreateConnection(matchId: string, userId: string, username: string): MatchConnection {
+function getOrCreateConnection(matchId: string, userId: string, username: string, userImage?: string, highlightColor?: string): MatchConnection {
 	const key = `${matchId}:${userId}`;
 	let conn = connections.get(key);
 
@@ -36,6 +38,8 @@ function getOrCreateConnection(matchId: string, userId: string, username: string
 			matchId,
 			userId,
 			username,
+			userImage,
+			highlightColor: highlightColor || "#3b82f6",
 			ws: null,
 			status: "disconnected",
 			reconnectTimeout: null,
@@ -106,7 +110,7 @@ function connect(conn: MatchConnection) {
 
 		if (ws.readyState === WebSocket.OPEN) {
 			try {
-				const msg = createJoinMatchMessage(conn.matchId, conn.userId, conn.username);
+				const msg = createJoinMatchMessage(conn.matchId, conn.userId, conn.username, conn.userImage, conn.highlightColor);
 				ws.send(serializeMessage(msg));
 			} catch (error) {
 				console.error(`[WS:${conn.matchId.slice(0, 8)}] Failed to send join message:`, error, {
@@ -190,10 +194,12 @@ export function subscribeToMatch(
 	matchId: string,
 	userId: string,
 	username: string,
+	userImage: string | undefined,
+	highlightColor: string,
 	onMessage: MessageHandler,
 	onStatus: StatusHandler
 ): () => void {
-	const conn = getOrCreateConnection(matchId, userId, username);
+	const conn = getOrCreateConnection(matchId, userId, username, userImage, highlightColor);
 
 	conn.messageHandlers.add(onMessage);
 	conn.statusHandlers.add(onStatus);

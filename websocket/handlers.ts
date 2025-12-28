@@ -7,11 +7,17 @@ import {
 	matchClipIdMaps,
 	matchConfigs,
 	matchPlayerClipCounts,
+	matchPlayerInfos,
+	chatRateLimits,
 	WS_API_KEY,
 	ZONE_BUFFER,
+	CHAT_RATE_LIMIT_WINDOW,
+	CHAT_RATE_LIMIT_MAX_MESSAGES,
+	CHAT_COOLDOWN_MS,
 	type WebSocketData,
 	type TimelineClip,
 	type MatchConfigCache,
+	type PlayerInfoCache,
 } from "./state";
 import {
 	type WSMessage,
@@ -26,6 +32,7 @@ import {
 	createErrorMessage,
 	createZoneClipsMessage,
 	createClipIdMappingMessage,
+	createChatBroadcast,
 	toLobbyInfoProto,
 	createTrackProto,
 	createClipDataProto,
@@ -228,7 +235,7 @@ export function handleUnsubscribeLobbies(ws: ServerWebSocket<WebSocketData>): vo
 
 export async function handleJoinMatch(ws: ServerWebSocket<WebSocketData>, msg: WSMessage): Promise<void> {
 	if (msg.payload.case !== "joinMatch" || !msg.payload.value) return;
-	const { matchId, userId, username } = msg.payload.value;
+	const { matchId, userId, username, userImage, highlightColor } = msg.payload.value;
 
 	if (ws.data.matchId) {
 		handleLeaveMatch(ws, createLeaveMatchMessage(ws.data.matchId, ws.data.userId!));
@@ -237,6 +244,8 @@ export async function handleJoinMatch(ws: ServerWebSocket<WebSocketData>, msg: W
 	ws.data.matchId = matchId;
 	ws.data.userId = userId;
 	ws.data.username = username;
+	ws.data.userImage = userImage ?? null;
+	ws.data.highlightColor = highlightColor || "#3b82f6";
 
 	ws.subscribe(`match:${matchId}`);
 
@@ -683,11 +692,18 @@ export async function handleTimelineSync(ws: ServerWebSocket<WebSocketData>, msg
 
 export function handleClipSelection(ws: ServerWebSocket<WebSocketData>, msg: WSMessage): void {
 	if (msg.payload.case !== "clipSelection" || !msg.payload.value) return;
-	const { matchId } = msg.payload.value;
+	const { matchId, userId, username, userImage, highlightColor } = msg.payload.value;
 
 	if (ws.data.matchId !== matchId) {
 		ws.send(serializeMessage(createErrorMessage("NOT_IN_MATCH", "You are not in this match")));
 		return;
+	}
+
+	if (userImage !== undefined) {
+		ws.data.userImage = userImage ?? null;
+	}
+	if (highlightColor) {
+		ws.data.highlightColor = highlightColor;
 	}
 
 	broadcast(matchId, msg, ws.data.id);
@@ -740,4 +756,78 @@ export function handleZoneSubscribe(ws: ServerWebSocket<WebSocketData>, msg: WSM
 	});
 
 	ws.send(serializeMessage(createZoneClipsMessage(matchId, startTime, endTime, zoneTracks)));
+}
+
+export function handleChatMessage(ws: ServerWebSocket<WebSocketData>, msg: WSMessage): void {
+	if (msg.payload.case !== "chatMessage" || !msg.payload.value) return;
+	const { matchId, message } = msg.payload.value;
+
+	if (ws.data.matchId !== matchId) {
+		ws.send(serializeMessage(createErrorMessage("NOT_IN_MATCH", "You are not in this match")));
+		return;
+	}
+
+	const userId = ws.data.userId;
+	const username = ws.data.username;
+
+	if (!userId || !username) {
+		ws.send(serializeMessage(createErrorMessage("NOT_AUTHENTICATED", "User info not available")));
+		return;
+	}
+
+	const now = Date.now();
+	let rateData = chatRateLimits.get(ws.data.id);
+	if (!rateData) {
+		rateData = { lastMessageTime: 0, messageCount: 0, windowStart: now };
+		chatRateLimits.set(ws.data.id, rateData);
+	}
+
+	if (now - rateData.windowStart > CHAT_RATE_LIMIT_WINDOW) {
+		rateData.windowStart = now;
+		rateData.messageCount = 0;
+	}
+
+	if (now - rateData.lastMessageTime < CHAT_COOLDOWN_MS) {
+		ws.send(serializeMessage(createErrorMessage("RATE_LIMITED", "You're sending messages too fast")));
+		return;
+	}
+
+	if (rateData.messageCount >= CHAT_RATE_LIMIT_MAX_MESSAGES) {
+		const timeLeft = Math.ceil((rateData.windowStart + CHAT_RATE_LIMIT_WINDOW - now) / 1000);
+		ws.send(serializeMessage(createErrorMessage("RATE_LIMITED", `Too many messages. Try again in ${timeLeft}s`)));
+		return;
+	}
+
+	rateData.lastMessageTime = now;
+	rateData.messageCount++;
+
+	const sanitizedMessage = message.trim().slice(0, 200);
+	if (!sanitizedMessage) return;
+
+	const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+	const userImage = ws.data.userImage ?? undefined;
+	const highlightColor = ws.data.highlightColor ?? "#3b82f6";
+	const timestamp = BigInt(Date.now());
+
+	const broadcastMsg = createChatBroadcast(
+		matchId,
+		messageId,
+		userId,
+		username,
+		userImage,
+		highlightColor,
+		sanitizedMessage,
+		timestamp
+	);
+
+	const players = matchPlayers.get(matchId);
+	if (players) {
+		const msgBytes = serializeMessage(broadcastMsg);
+		for (const connId of players) {
+			const playerWs = connections.get(connId);
+			if (playerWs && playerWs.readyState === 1) {
+				playerWs.send(msgBytes);
+			}
+		}
+	}
 }
