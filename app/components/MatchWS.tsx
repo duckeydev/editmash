@@ -22,6 +22,7 @@ import {
 	isClipBatchUpdateMessage,
 	isClipIdMappingMessage,
 	isErrorMessage,
+	isChatBroadcast,
 	createMediaUploadedMessage,
 	createMediaRemovedMessage,
 	createClipAddedMessage,
@@ -37,12 +38,14 @@ import {
 	createClipDataProto,
 	createTrackProto,
 	createTimelineDataProto,
+	createChatMessage,
 	type ClipDataProto,
 	type ClipData,
 	type TimelineData,
 	type MediaData,
 	type Track,
 	type ClipDeltaUpdate,
+	type ChatMessageData,
 } from "@/websocket/types";
 import type { Clip } from "@/app/types/timeline";
 import type { MatchConfig } from "@/app/types/match";
@@ -101,6 +104,7 @@ interface MatchWebSocketContextValue {
 	remoteSelections: Map<string, RemoteSelection>;
 	matchConfig: ClipConstraintConfig | null;
 	playerClipCount: number;
+	chatMessages: ChatMessageData[];
 	broadcastMediaUploaded: (media: MediaItem) => void;
 	broadcastMediaRemoved: (mediaId: string) => void;
 	broadcastClipAdded: (trackId: string, clip: Clip, timeline: TimelineForValidation) => boolean;
@@ -118,6 +122,8 @@ interface MatchWebSocketContextValue {
 		trackId: string,
 		timeline: TimelineForValidation
 	) => { valid: boolean; reason?: string };
+	sendChatMessage: (message: string) => { success: boolean; error?: string };
+	addSystemMessage: (message: string) => void;
 }
 
 const MatchWebSocketContext = createContext<MatchWebSocketContextValue | null>(null);
@@ -383,6 +389,7 @@ export function MatchWS({
 	const [remoteSelections, setRemoteSelections] = useState<Map<string, RemoteSelection>>(new Map());
 	const [currentZone, setCurrentZone] = useState<{ startTime: number; endTime: number } | null>(null);
 	const [playerClipCount, setPlayerClipCount] = useState(0);
+	const [chatMessages, setChatMessages] = useState<ChatMessageData[]>([]);
 	const hasReceivedInitialCount = useRef(false);
 
 	const constraintConfig: ClipConstraintConfig | null = matchConfig
@@ -715,7 +722,10 @@ export function MatchWS({
 						if (delta.duration !== undefined) partialUpdate.duration = delta.duration;
 						if (delta.sourceIn !== undefined) partialUpdate.sourceIn = delta.sourceIn;
 						if (delta.properties) {
-							partialUpdate.properties = flatPropertiesToNestedPartial(delta.properties as unknown as Record<string, unknown>, clipInfo.clipType);
+							partialUpdate.properties = flatPropertiesToNestedPartial(
+								delta.properties as unknown as Record<string, unknown>,
+								clipInfo.clipType
+							);
 						}
 
 						const targetTrackId = newTrackId || originalTrackId;
@@ -743,6 +753,35 @@ export function MatchWS({
 				}
 				return;
 			}
+
+			if (isChatBroadcast(message) && message.payload.case === "chatBroadcast") {
+				const {
+					messageId,
+					userId: msgUserId,
+					username: msgUsername,
+					userImage,
+					highlightColor,
+					message: msgText,
+					timestamp,
+				} = message.payload.value;
+				const chatMessage: ChatMessageData = {
+					messageId,
+					userId: msgUserId,
+					username: msgUsername,
+					userImage: userImage ?? undefined,
+					highlightColor,
+					message: msgText,
+					timestamp: Number(timestamp),
+				};
+				setChatMessages((prev) => {
+					const newMessages = [...prev, chatMessage];
+					if (newMessages.length > 100) {
+						return newMessages.slice(-100);
+					}
+					return newMessages;
+				});
+				return;
+			}
 		};
 
 		const handleStatus = (newStatus: ConnectionStatus) => {
@@ -752,10 +791,10 @@ export function MatchWS({
 			}
 		};
 
-		const unsubscribe = subscribeToMatch(matchId, userId, username, handleMessage, handleStatus);
+		const unsubscribe = subscribeToMatch(matchId, userId, username, userImage, highlightColor, handleMessage, handleStatus);
 
 		return unsubscribe;
-	}, [matchId, userId, username]);
+	}, [matchId, userId, username, userImage, highlightColor]);
 
 	const broadcastMediaUploaded = useCallback((media: MediaItem) => {
 		const { matchId, userId, username } = propsRef.current;
@@ -1104,6 +1143,71 @@ export function MatchWS({
 		[constraintConfig, playerClipCount]
 	);
 
+	const chatRateLimitRef = useRef<{ lastMessageTime: number; messageCount: number; windowStart: number }>({
+		lastMessageTime: 0,
+		messageCount: 0,
+		windowStart: Date.now(),
+	});
+
+	const CHAT_RATE_LIMIT_WINDOW = 10000;
+	const CHAT_RATE_LIMIT_MAX_MESSAGES = 5;
+	const CHAT_COOLDOWN_MS = 1000;
+
+	const addSystemMessage = useCallback((message: string) => {
+		const systemMessage: ChatMessageData = {
+			messageId: `sys_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+			userId: "system",
+			username: "System",
+			userImage: undefined,
+			highlightColor: "#f59e0b",
+			message,
+			timestamp: Date.now(),
+		};
+		setChatMessages((prev) => {
+			const newMessages = [...prev, systemMessage];
+			if (newMessages.length > 100) {
+				return newMessages.slice(-100);
+			}
+			return newMessages;
+		});
+	}, []);
+
+	const sendChatMessage = useCallback(
+		(message: string): { success: boolean; error?: string } => {
+			const { matchId, userId } = propsRef.current;
+			const trimmed = message.trim();
+			if (!trimmed) return { success: false, error: "Message is empty" };
+
+			const now = Date.now();
+			const rateData = chatRateLimitRef.current;
+
+			if (now - rateData.windowStart > CHAT_RATE_LIMIT_WINDOW) {
+				rateData.windowStart = now;
+				rateData.messageCount = 0;
+			}
+
+			if (now - rateData.lastMessageTime < CHAT_COOLDOWN_MS) {
+				const error = "You're sending messages too fast";
+				addSystemMessage(error);
+				return { success: false, error };
+			}
+
+			if (rateData.messageCount >= CHAT_RATE_LIMIT_MAX_MESSAGES) {
+				const timeLeft = Math.ceil((rateData.windowStart + CHAT_RATE_LIMIT_WINDOW - now) / 1000);
+				const error = `Too many messages. Try again in ${timeLeft}s`;
+				addSystemMessage(error);
+				return { success: false, error };
+			}
+
+			rateData.lastMessageTime = now;
+			rateData.messageCount++;
+
+			sendMessage(matchId, userId, createChatMessage(matchId, trimmed));
+			return { success: true };
+		},
+		[addSystemMessage]
+	);
+
 	const value: MatchWebSocketContextValue = {
 		status,
 		playersOnline,
@@ -1111,6 +1215,7 @@ export function MatchWS({
 		remoteSelections,
 		matchConfig: constraintConfig,
 		playerClipCount,
+		chatMessages,
 		broadcastMediaUploaded,
 		broadcastMediaRemoved,
 		broadcastClipAdded,
@@ -1123,6 +1228,8 @@ export function MatchWS({
 		currentZone,
 		validateClipAdd,
 		validateClipSplitOp,
+		sendChatMessage,
+		addSystemMessage,
 	};
 
 	return <MatchWebSocketContext.Provider value={value}>{children}</MatchWebSocketContext.Provider>;

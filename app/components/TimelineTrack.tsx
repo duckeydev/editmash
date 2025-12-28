@@ -6,6 +6,7 @@ import type { RemoteSelection } from "./MatchWS";
 interface TimelineTrackProps {
 	track: Track;
 	pixelsPerSecond: number;
+	timelineDuration: number;
 	selectedClips: Array<{ clipId: string; trackId: string }>;
 	draggedClipId: string | null;
 	isHovered: boolean;
@@ -29,6 +30,7 @@ interface TimelineTrackProps {
 function TimelineTrack({
 	track,
 	pixelsPerSecond,
+	timelineDuration,
 	selectedClips,
 	draggedClipId,
 	isHovered,
@@ -131,6 +133,16 @@ function TimelineTrack({
 					changeNotifications={clipChangeNotifications?.get(clip.id)}
 				/>
 			))}
+			
+			<div
+				className="absolute bg-card pointer-events-none border-l border-border"
+				style={{
+					left: `${timelineDuration * pixelsPerSecond}px`,
+					right: 0,
+					top: 0,
+					bottom: '-1px',
+				}}
+			/>
 		</div>
 	);
 }

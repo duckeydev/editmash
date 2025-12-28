@@ -16,6 +16,7 @@ import {
 	generateAndUpdateThumbnail,
 	placeClipOnTimeline,
 	calculatePlayheadSnappedTime,
+	calculateSnappedTime,
 	createNewClip,
 } from "./timeline/utils";
 import TimelineToolbar, { ToolMode, TransformMode } from "./timeline/TimelineToolbar";
@@ -852,7 +853,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 				const rect = timelineRef.current?.getBoundingClientRect();
 				if (!rect) return;
 				const dragX = e.clientX - rect.left + scrollLeft;
-				const dragTime = Math.max(0, dragX / pixelsPerSecond);
+				let dragTime = Math.max(0, dragX / pixelsPerSecond);
 				let clipDuration = mediaItem.duration;
 				if (dragTime + clipDuration > timelineState.duration) {
 					clipDuration = timelineState.duration - dragTime;
@@ -864,6 +865,18 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					}
 					return;
 				}
+				
+				if (isSnappingEnabled) {
+					const snappedTime = calculateSnappedTime(dragTime, "preview", clipDuration, {
+						isSnappingEnabled,
+						snapPoints: snapPointsCache,
+						currentTimeRef,
+					});
+					if (snappedTime >= 0 && snappedTime + clipDuration <= timelineState.duration) {
+						dragTime = snappedTime;
+					}
+				}
+				
 				const last = lastDragPreviewRef.current;
 				if (
 					!last ||
@@ -877,7 +890,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					setDragPreview(newPreview);
 				}
 			},
-			[pixelsPerSecond, timelineState.duration, canAddClip]
+			[pixelsPerSecond, timelineState.duration, canAddClip, isSnappingEnabled, snapPointsCache, currentTimeRef]
 		);
 
 		// media drop handler
@@ -900,12 +913,23 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					const rect = timelineRef.current?.getBoundingClientRect();
 					if (!rect) return;
 					const dropX = e.clientX - rect.left + scrollLeft;
-					const dropTime = Math.max(0, dropX / pixelsPerSecond);
+					let dropTime = Math.max(0, dropX / pixelsPerSecond);
 					let clipDuration = mediaItem.duration;
 					if (dropTime + clipDuration > timelineState.duration) {
 						clipDuration = timelineState.duration - dropTime;
 					}
 					if (clipDuration <= 0) return;
+					
+					if (isSnappingEnabled) {
+						const snappedTime = calculateSnappedTime(dropTime, "drop", clipDuration, {
+							isSnappingEnabled,
+							snapPoints: snapPointsCache,
+							currentTimeRef,
+						});
+						if (snappedTime >= 0 && snappedTime + clipDuration <= timelineState.duration) {
+							dropTime = snappedTime;
+						}
+					}
 
 					const newClip = createNewClip(mediaItem, dropTime, clipDuration);
 
@@ -925,7 +949,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					console.error("Error handling media drop:", err);
 				}
 			},
-			[pixelsPerSecond, timelineState.duration, updateTimelineState, onClipAdded, canAddClip]
+			[pixelsPerSecond, timelineState.duration, updateTimelineState, onClipAdded, canAddClip, isSnappingEnabled, snapPointsCache, currentTimeRef]
 		);
 
 		const handleMediaDragLeave = useCallback(() => {
@@ -1094,6 +1118,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 										<TimelineTrack
 											track={track}
 											pixelsPerSecond={pixelsPerSecond}
+											timelineDuration={timelineState.duration}
 											selectedClips={selectedClips}
 											draggedClipId={dragState?.clipId || null}
 											isHovered={hoveredTrackId === track.id}

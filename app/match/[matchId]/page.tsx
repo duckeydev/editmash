@@ -14,6 +14,7 @@ import { WifiOff02Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import type { ClipData, TimelineData } from "@/websocket/types";
 import { VideoClipProperties, AudioClipProperties } from "@/app/types/timeline";
+import { Chat } from "@/app/components/Chat";
 
 function transformTimelineFromApi(timeline: TimelineState): TimelineState {
 	return {
@@ -655,6 +656,8 @@ function MatchContent({
 					</div>
 				</div>
 			)}
+
+			<Chat />
 		</div>
 	);
 }

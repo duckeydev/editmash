@@ -43,6 +43,10 @@ message WSMessage {
     ErrorPayload error = 50;
     PingPayload ping = 51;
     PongPayload pong = 52;
+    
+    // Chat messages
+    ChatMessagePayload chat_message = 70;
+    ChatBroadcastPayload chat_broadcast = 71;
   }
 }
 
@@ -77,6 +81,8 @@ enum MessageType {
   MESSAGE_TYPE_CLIP_SPLIT = 27;
   MESSAGE_TYPE_CLIP_BATCH_UPDATE = 28;
   MESSAGE_TYPE_CLIP_ID_MAPPING = 29;
+  MESSAGE_TYPE_CHAT_MESSAGE = 30;
+  MESSAGE_TYPE_CHAT_BROADCAST = 31;
 }
 
 message UserInfo {
@@ -94,6 +100,8 @@ message JoinMatchPayload {
   string match_id = 1;
   string user_id = 2;
   string username = 3;
+  optional string user_image = 4;
+  string highlight_color = 5;
 }
 
 message LeaveMatchPayload {
@@ -356,4 +364,20 @@ message ZoneClipsPayload {
   double start_time = 2;
   double end_time = 3;
   repeated Track tracks = 4;
+}
+
+message ChatMessagePayload {
+  string match_id = 1;
+  string message = 2;
+}
+
+message ChatBroadcastPayload {
+  string match_id = 1;
+  string message_id = 2;
+  string user_id = 3;
+  string username = 4;
+  optional string user_image = 5;
+  string highlight_color = 6;
+  string message = 7;
+  int64 timestamp = 8;
 }
