@@ -161,30 +161,6 @@ export default function TopBar({
 			</div>
 
 			<div className="flex items-center gap-2">
-				{playerClipCount !== undefined && maxClipsPerUser !== undefined && maxClipsPerUser > 0 && (
-					<div
-						className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${
-							playerClipCount >= maxClipsPerUser
-								? "bg-red-600/20 text-red-400 border border-red-600/40"
-								: playerClipCount >= maxClipsPerUser * 0.8
-								? "bg-amber-600/20 text-amber-400 border border-amber-600/40"
-								: "bg-muted text-muted-foreground"
-						}`}
-						title={
-							playerClipCount >= maxClipsPerUser
-								? "You've reached the maximum clip limit"
-								: `${maxClipsPerUser - playerClipCount} clips remaining`
-						}
-					>
-						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
-							<line x1="2" y1="12" x2="22" y2="12" />
-							<line x1="12" y1="2" x2="12" y2="22" />
-						</svg>
-						{playerClipCount}/{maxClipsPerUser}
-					</div>
-				)}
-
 				{playersOnline !== undefined && (
 					<div className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
 						<HugeiconsIcon icon={UserGroupIcon} size={12} />

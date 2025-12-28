@@ -75,7 +75,7 @@ export function MatchModifierBadges({ matchConfig, showMaxPlayers = false, verti
 						</Badge>
 					</TooltipTrigger>
 					<TooltipContent>
-						<p>Max volume is {matchConfig.audioMaxDb > 0 ? "+" : ""}{matchConfig.audioMaxDb} dB.</p>
+						<p>Max volume boost is {matchConfig.audioMaxDb > 0 ? "+" : ""}{matchConfig.audioMaxDb} dB.</p>
 					</TooltipContent>
 				</Tooltip>
 
