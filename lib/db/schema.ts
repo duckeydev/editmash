@@ -271,6 +271,39 @@ export const clipEditOperationsRelations = relations(clipEditOperations, ({ one 
 	}),
 }));
 
+export const videoLikes = pgTable(
+	"video_likes",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		matchId: uuid("match_id")
+			.notNull()
+			.references(() => matches.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("video_likes_matchId_idx").on(table.matchId),
+		index("video_likes_userId_idx").on(table.userId),
+		index("video_likes_unique_idx").on(table.matchId, table.userId),
+	]
+);
+
+export const videoLikesRelations = relations(videoLikes, ({ one }) => ({
+	match: one(matches, {
+		fields: [videoLikes.matchId],
+		references: [matches.id],
+	}),
+	user: one(user, {
+		fields: [videoLikes.userId],
+		references: [user.id],
+	}),
+}));
+
+export type VideoLikeRecord = typeof videoLikes.$inferSelect;
+export type NewVideoLikeRecord = typeof videoLikes.$inferInsert;
+
 export type LobbyRecord = typeof lobbies.$inferSelect;
 export type NewLobbyRecord = typeof lobbies.$inferInsert;
 
