@@ -54,75 +54,126 @@ let cachedFFmpegPath: string;
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
 
-function generateVideoFilter(clip: VideoClip, inputIndex: number, outputLabel: string): string {
-	const props = clip.properties;
-	const filters: string[] = [];
-	const clampedSpeed = Math.max(0.25, Math.min(4, props.speed));
+function normalizeProperties(props: any) {
+	const isFlat = "x" in props || "width" in props || "zoomX" in props || "cropLeft" in props;
 
-	// extract the portion of video based on sourceIn and duration
-	const sourceEndTime = clip.sourceIn + clip.duration * clampedSpeed;
+	if (isFlat) {
+		return {
+			position: {
+				x: props.x ?? 0,
+				y: props.y ?? 0,
+			},
+			size: {
+				width: props.width ?? CANVAS_WIDTH,
+				height: props.height ?? CANVAS_HEIGHT,
+			},
+			zoom: {
+				x: props.zoomX ?? 1,
+				y: props.zoomY ?? 1,
+				linked: props.zoomLinked ?? true,
+			},
+			rotation: props.rotation ?? 0,
+			flip: {
+				horizontal: props.flipX ?? false,
+				vertical: props.flipY ?? false,
+			},
+			crop: {
+				left: props.cropLeft ?? 0,
+				right: props.cropRight ?? 0,
+				top: props.cropTop ?? 0,
+				bottom: props.cropBottom ?? 0,
+				softness: 0,
+			},
+			opacity: props.opacity ?? 1,
+			speed: props.speed ?? 1,
+			freezeFrame: props.freezeFrame ?? false,
+			freezeFrameTime: props.freezeFrameTime ?? 0,
+			volume: props.volume ?? 1,
+			pan: props.pan ?? 0,
+			pitch: props.pitch ?? 0,
+		};
+	} else {
+		return {
+			position: props.position ?? { x: 0, y: 0 },
+			size: props.size ?? { width: CANVAS_WIDTH, height: CANVAS_HEIGHT },
+			zoom: props.zoom ?? { x: 1, y: 1, linked: true },
+			rotation: props.rotation ?? 0,
+			flip: props.flip ?? { horizontal: false, vertical: false },
+			crop: props.crop ?? { left: 0, right: 0, top: 0, bottom: 0, softness: 0 },
+			opacity: props.opacity ?? 1,
+			speed: props.speed ?? 1,
+			freezeFrame: props.freezeFrame ?? false,
+			freezeFrameTime: props.freezeFrameTime ?? 0,
+			volume: props.volume ?? 1,
+			pan: props.pan ?? 0,
+			pitch: props.pitch ?? 0,
+		};
+	}
+}
+
+function generateVideoFilter(clip: VideoClip, inputIndex: number, outputLabel: string): string {
+	const rawProps = clip.properties ?? {};
+	const props = normalizeProperties(rawProps);
+	const filters: string[] = [];
+
+	const speed = Math.max(0.25, Math.min(4, props.speed));
+	const crop = props.crop;
+	const size = props.size;
+	const zoom = props.zoom;
+	const flip = props.flip;
+	const rotation = props.rotation;
+	const freezeFrame = props.freezeFrame;
+	const freezeFrameTime = props.freezeFrameTime;
+
+	const sourceEndTime = clip.sourceIn + clip.duration * speed;
 	filters.push(`[${inputIndex}:v]trim=start=${clip.sourceIn}:end=${sourceEndTime},setpts=PTS-STARTPTS`);
 
-	// speed
-	if (clampedSpeed !== 1) {
-		filters.push(`setpts=${1 / clampedSpeed}*PTS`);
+	if (speed !== 1) {
+		filters.push(`setpts=PTS/${speed}`);
 	}
 
-	// freeze frame
-	if (props.freezeFrame) {
-		const freezePoint = props.freezeFrameTime;
-		const frameDuration = 1 / 30; // 30fps, one frame duration
-		const loopCount = Math.ceil(clip.duration / frameDuration);
-
-		filters.push(`trim=start=${freezePoint}:duration=${frameDuration},loop=loop=${loopCount}:size=1,setpts=PTS-STARTPTS`);
+	if (freezeFrame) {
+		const frameDuration = 1 / 30;
+		const frameCount = Math.ceil(clip.duration * 30);
+		filters.push(`trim=start=${freezeFrameTime}:duration=${frameDuration},setpts=PTS-STARTPTS`);
+		filters.push(`loop=loop=${frameCount}:size=1:start=0,setpts=PTS-STARTPTS`);
 	}
 
-	// crop
-	const hasCrop = props.crop.left > 0 || props.crop.right > 0 || props.crop.top > 0 || props.crop.bottom > 0;
+	const hasCrop = crop.left > 0 || crop.right > 0 || crop.top > 0 || crop.bottom > 0;
 	if (hasCrop) {
-		filters.push(
-			`crop=iw-${props.crop.left}-${props.crop.right}:ih-${props.crop.top}-${props.crop.bottom}:${props.crop.left}:${props.crop.top}`
-		);
+		filters.push(`crop=iw-${crop.left}-${crop.right}:ih-${crop.top}-${crop.bottom}:${crop.left}:${crop.top}`);
 	}
-
-	// zoom
-	const L = props.crop.left;
-	const R = props.crop.right;
-	const T = props.crop.top;
-	const B = props.crop.bottom;
-
-	const widthMultiplier = props.size.width * props.zoom.x;
-	const heightMultiplier = props.size.height * props.zoom.y;
 
 	let scaleExpr: string;
 	if (hasCrop) {
-		scaleExpr = `scale='trunc(${widthMultiplier}*iw/(iw+${L}+${R})/2)*2':'trunc(${heightMultiplier}*ih/(ih+${T}+${B})/2)*2'`;
+		const targetW = size.width * zoom.x;
+		const targetH = size.height * zoom.y;
+		const cropW = crop.left + crop.right;
+		const cropH = crop.top + crop.bottom;
+		scaleExpr = `scale='trunc(${targetW}*iw/(iw+${cropW})/2)*2':'trunc(${targetH}*ih/(ih+${cropH})/2)*2':flags=lanczos`;
 	} else {
-		const finalWidth = Math.round(props.size.width * props.zoom.x);
-		const finalHeight = Math.round(props.size.height * props.zoom.y);
-		const safeWidth = Math.max(2, finalWidth);
-		const safeHeight = Math.max(2, finalHeight);
-		const evenWidth = safeWidth % 2 === 0 ? safeWidth : safeWidth + 1;
-		const evenHeight = safeHeight % 2 === 0 ? safeHeight : safeHeight + 1;
-		scaleExpr = `scale=${evenWidth}:${evenHeight}`;
+		const finalWidth = Math.round(size.width * zoom.x);
+		const finalHeight = Math.round(size.height * zoom.y);
+		const evenWidth = Math.max(2, finalWidth % 2 === 0 ? finalWidth : finalWidth + 1);
+		const evenHeight = Math.max(2, finalHeight % 2 === 0 ? finalHeight : finalHeight + 1);
+		scaleExpr = `scale=${evenWidth}:${evenHeight}:flags=lanczos`;
 	}
-
 	filters.push(scaleExpr);
 
-	// flip
-	if (props.flip.horizontal) {
+	if (rotation !== 0) {
+		const radians = (rotation * Math.PI) / 180;
+		filters.push(`format=rgba`);
+		filters.push(`rotate=${radians}:c=none:ow='hypot(iw,ih)':oh='hypot(iw,ih)'`);
+	}
+
+	if (flip.horizontal) {
 		filters.push(`hflip`);
 	}
-	if (props.flip.vertical) {
+	if (flip.vertical) {
 		filters.push(`vflip`);
 	}
 
-	// rotation
-	if (props.rotation !== 0) {
-		filters.push(`format=rgba`);
-		const radians = (props.rotation * Math.PI) / 180;
-		filters.push(`rotate=${radians}:c=none:ow='hypot(iw,ih)':oh='hypot(iw,ih)'`);
-	} else {
+	if (rotation === 0) {
 		filters.push(`format=rgba`);
 	}
 
@@ -130,152 +181,160 @@ function generateVideoFilter(clip: VideoClip, inputIndex: number, outputLabel: s
 		filters.push(`setpts=PTS+${clip.startTime}/TB`);
 	}
 
-	const filterString = filters.join(",") + `[${outputLabel}]`;
-	return filterString;
+	return filters.join(",") + `[${outputLabel}]`;
 }
 
 function generateImageFilter(clip: ImageClip, inputIndex: number, outputLabel: string): string {
-	const props = clip.properties;
+	const rawProps = clip.properties ?? {};
+	const props = normalizeProperties(rawProps);
 	const filters: string[] = [];
 
-	// loop the image for the clip duration at 30fps
+	const crop = props.crop;
+	const size = props.size;
+	const zoom = props.zoom;
+	const flip = props.flip;
+	const rotation = props.rotation;
+
 	const frameCount = Math.ceil(clip.duration * 30);
 	filters.push(`[${inputIndex}:v]loop=loop=${frameCount}:size=1:start=0,setpts=PTS-STARTPTS,fps=30`);
 
-	// crop
-	const hasCrop = props.crop.left > 0 || props.crop.right > 0 || props.crop.top > 0 || props.crop.bottom > 0;
+	const hasCrop = crop.left > 0 || crop.right > 0 || crop.top > 0 || crop.bottom > 0;
 	if (hasCrop) {
-		filters.push(
-			`crop=iw-${props.crop.left}-${props.crop.right}:ih-${props.crop.top}-${props.crop.bottom}:${props.crop.left}:${props.crop.top}`
-		);
+		filters.push(`crop=iw-${crop.left}-${crop.right}:ih-${crop.top}-${crop.bottom}:${crop.left}:${crop.top}`);
 	}
-
-	// zoom/scale
-	const L = props.crop.left;
-	const R = props.crop.right;
-	const T = props.crop.top;
-	const B = props.crop.bottom;
-
-	const widthMultiplier = props.size.width * props.zoom.x;
-	const heightMultiplier = props.size.height * props.zoom.y;
 
 	let scaleExpr: string;
 	if (hasCrop) {
-		scaleExpr = `scale='trunc(${widthMultiplier}*iw/(iw+${L}+${R})/2)*2':'trunc(${heightMultiplier}*ih/(ih+${T}+${B})/2)*2'`;
+		const targetW = size.width * zoom.x;
+		const targetH = size.height * zoom.y;
+		const cropW = crop.left + crop.right;
+		const cropH = crop.top + crop.bottom;
+		scaleExpr = `scale='trunc(${targetW}*iw/(iw+${cropW})/2)*2':'trunc(${targetH}*ih/(ih+${cropH})/2)*2':flags=lanczos`;
 	} else {
-		const finalWidth = Math.round(props.size.width * props.zoom.x);
-		const finalHeight = Math.round(props.size.height * props.zoom.y);
-		const safeWidth = Math.max(2, finalWidth);
-		const safeHeight = Math.max(2, finalHeight);
-		const evenWidth = safeWidth % 2 === 0 ? safeWidth : safeWidth + 1;
-		const evenHeight = safeHeight % 2 === 0 ? safeHeight : safeHeight + 1;
-		scaleExpr = `scale=${evenWidth}:${evenHeight}`;
+		const finalWidth = Math.round(size.width * zoom.x);
+		const finalHeight = Math.round(size.height * zoom.y);
+		const evenWidth = Math.max(2, finalWidth % 2 === 0 ? finalWidth : finalWidth + 1);
+		const evenHeight = Math.max(2, finalHeight % 2 === 0 ? finalHeight : finalHeight + 1);
+		scaleExpr = `scale=${evenWidth}:${evenHeight}:flags=lanczos`;
 	}
-
 	filters.push(scaleExpr);
 
-	// flip
-	if (props.flip.horizontal) {
+	if (rotation !== 0) {
+		const radians = (rotation * Math.PI) / 180;
+		filters.push(`format=rgba`);
+		filters.push(`rotate=${radians}:c=none:ow='hypot(iw,ih)':oh='hypot(iw,ih)'`);
+	}
+
+	if (flip.horizontal) {
 		filters.push(`hflip`);
 	}
-	if (props.flip.vertical) {
+	if (flip.vertical) {
 		filters.push(`vflip`);
 	}
 
-	// rotation
-	if (props.rotation !== 0) {
-		filters.push(`format=rgba`);
-		const radians = (props.rotation * Math.PI) / 180;
-		filters.push(`rotate=${radians}:c=none:ow='hypot(iw,ih)':oh='hypot(iw,ih)'`);
-	} else {
+	if (rotation === 0) {
 		filters.push(`format=rgba`);
 	}
 
-	// trim to exact duration
 	filters.push(`trim=duration=${clip.duration}`);
 
 	if (clip.startTime > 0) {
 		filters.push(`setpts=PTS+${clip.startTime}/TB`);
 	}
 
-	const filterString = filters.join(",") + `[${outputLabel}]`;
-	return filterString;
+	return filters.join(",") + `[${outputLabel}]`;
 }
 
 function generateAudioFilter(clip: AudioClip, inputIndex: number, outputLabel: string): string {
-	const props = clip.properties;
+	const rawProps = clip.properties ?? {};
+	const props = normalizeProperties(rawProps);
 	const filters: string[] = [];
-	const clampedSpeed = Math.max(0.25, Math.min(4, props.speed));
 
-	// 1. extract the portion of audio based on sourceIn and duration
-	const sourceEndTime = clip.sourceIn + clip.duration * clampedSpeed;
+	const speed = Math.max(0.25, Math.min(4, props.speed));
+	const volume = props.volume;
+	const pan = props.pan;
+	const pitch = props.pitch;
+
+	const sourceEndTime = clip.sourceIn + clip.duration * speed;
 	filters.push(`[${inputIndex}:a]atrim=start=${clip.sourceIn}:end=${sourceEndTime},asetpts=PTS-STARTPTS`);
 
-	// 2. speed
-	if (clampedSpeed !== 1) {
-		let speed = clampedSpeed;
-		while (speed > 2.0) {
+	if (speed !== 1) {
+		let remainingSpeed = speed;
+		while (remainingSpeed > 2.0) {
 			filters.push(`atempo=2.0`);
-			speed /= 2.0;
+			remainingSpeed /= 2.0;
 		}
-		while (speed < 0.5) {
+		while (remainingSpeed < 0.5) {
 			filters.push(`atempo=0.5`);
-			speed *= 2.0;
+			remainingSpeed *= 2.0;
 		}
-		if (speed !== 1.0) {
-			filters.push(`atempo=${speed}`);
+		if (Math.abs(remainingSpeed - 1.0) > 0.001) {
+			filters.push(`atempo=${remainingSpeed}`);
 		}
 	}
 
-	// 3. volume
-	if (props.volume !== 1) {
-		filters.push(`volume=${props.volume}`);
+	if (pitch !== 0) {
+		const pitchRatio = Math.pow(2, pitch / 12);
+		const newRate = Math.round(48000 * pitchRatio);
+		filters.push(`asetrate=${newRate}`);
+		filters.push(`aresample=48000`);
+		const tempoCompensation = 1 / pitchRatio;
+		if (Math.abs(tempoCompensation - 1.0) > 0.001) {
+			let remainingTempo = tempoCompensation;
+			while (remainingTempo > 2.0) {
+				filters.push(`atempo=2.0`);
+				remainingTempo /= 2.0;
+			}
+			while (remainingTempo < 0.5) {
+				filters.push(`atempo=0.5`);
+				remainingTempo *= 2.0;
+			}
+			if (Math.abs(remainingTempo - 1.0) > 0.001) {
+				filters.push(`atempo=${remainingTempo}`);
+			}
+		}
 	}
 
-	// 4. pan
-	if (props.pan !== 0) {
-		const leftGain = props.pan <= 0 ? 1 : 1 - props.pan;
-		const rightGain = props.pan >= 0 ? 1 : 1 + props.pan;
+	if (Math.abs(volume - 1) > 0.001) {
+		filters.push(`volume=${volume}`);
+	}
+
+	if (Math.abs(pan) > 0.001) {
+		const leftGain = pan <= 0 ? 1 : 1 - pan;
+		const rightGain = pan >= 0 ? 1 : 1 + pan;
 		filters.push(`pan=stereo|c0=${leftGain}*c0|c1=${rightGain}*c1`);
 	}
 
-	// 5. pitch
-	if (props.pitch !== 0) {
-		const ratio = Math.pow(2, props.pitch / 12);
-		const newRate = Math.round(48000 * ratio);
-		filters.push(`asetrate=${newRate},aresample=48000`);
-	}
-
-	const filterString = filters.join(",") + `[${outputLabel}]`;
-	return filterString;
+	return filters.join(",") + `[${outputLabel}]`;
 }
 
 function calculateOverlayPosition(clip: VideoClip | ImageClip): { x: string; y: string } {
-	const props = clip.properties;
+	const rawProps = clip.properties ?? {};
+	const props = normalizeProperties(rawProps);
 
-	const centerX = props.position.x + props.size.width / 2;
-	const centerY = props.position.y + props.size.height / 2;
+	const position = props.position;
+	const size = props.size;
+	const zoom = props.zoom;
+	const crop = props.crop;
 
-	const L = props.crop.left;
-	const R = props.crop.right;
-	const T = props.crop.top;
-	const B = props.crop.bottom;
+	const centerX = position.x + size.width / 2;
+	const centerY = position.y + size.height / 2;
 
-	const Mw = props.size.width * props.zoom.x;
-	const Mh = props.size.height * props.zoom.y;
+	const hasCropX = crop.left + crop.right > 0;
+	const hasCropY = crop.top + crop.bottom > 0;
 
 	let xExpr: string;
-	if (L + R > 0) {
-		const cropOffsetExpr = `(${L - R})*(${Mw}-w)/(2*${L + R})`;
-		xExpr = `${centerX}-w/2+${cropOffsetExpr}`;
+	if (hasCropX) {
+		const cropOffsetX = ((crop.left - crop.right) * zoom.x) / 2;
+		xExpr = `${centerX}-w/2+${cropOffsetX}`;
 	} else {
 		xExpr = `${centerX}-w/2`;
 	}
 
 	let yExpr: string;
-	if (T + B > 0) {
-		const cropOffsetExpr = `(${T - B})*(${Mh}-h)/(2*${T + B})`;
-		yExpr = `${centerY}-h/2+${cropOffsetExpr}`;
+	if (hasCropY) {
+		const cropOffsetY = ((crop.top - crop.bottom) * zoom.y) / 2;
+		yExpr = `${centerY}-h/2+${cropOffsetY}`;
 	} else {
 		yExpr = `${centerY}-h/2`;
 	}
@@ -342,7 +401,8 @@ function buildComplexFilter(
 			const clipEndTime = clip.startTime + clip.duration;
 			const enable = `between(t,${clip.startTime},${clipEndTime})`;
 
-			filterChains.push(`[${currentBase}][${label}]overlay=${x}:${y}:enable='${enable}'[${outputLabel}]`);
+			const overlayFilter = `[${currentBase}][${label}]overlay=${x}:${y}:enable='${enable}'[${outputLabel}]`;
+			filterChains.push(overlayFilter);
 			currentBase = outputLabel;
 		});
 	}

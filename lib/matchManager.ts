@@ -1,5 +1,5 @@
 import { MatchStatus } from "../app/types/match";
-import { validateMatchConfig } from "./constraints";
+import { validateMatchConfig } from "./clipConstraints";
 import * as storage from "./storage";
 import { renderTimeline, downloadMediaFiles, cleanupTempFiles } from "./ffmpeg";
 import { getRedis } from "./redis";
