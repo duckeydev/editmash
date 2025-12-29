@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 			likeCount: number;
 			liked: boolean;
 		}) => {
-			const contentDuration = calculateContentDuration(r.timelineJson);
+			const contentDuration = r.timelineJson?.tracks?.length ? calculateContentDuration(r.timelineJson) : 0;
 			return {
 				id: r.id,
 				lobbyName: r.lobbyName,
