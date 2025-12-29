@@ -249,7 +249,7 @@ export async function handleJoinMatch(ws: ServerWebSocket<WebSocketData>, msg: W
 
 			const otherWs = connections.get(connId);
 
-			if (otherWs && otherWs.data.matchId && otherWs.data.matchId !== matchId) {
+			if (otherWs && otherWs.data.matchId) {
 				const otherMatchId = otherWs.data.matchId;
 				otherWs.unsubscribe(`match:${otherMatchId}`);
 				const players = matchPlayers.get(otherMatchId);
@@ -260,7 +260,9 @@ export async function handleJoinMatch(ws: ServerWebSocket<WebSocketData>, msg: W
 						cleanupMatchResources(otherMatchId);
 					}
 				}
-				broadcast(otherMatchId, createPlayerLeftMessage(otherMatchId, userId));
+				if (otherMatchId !== matchId) {
+					broadcast(otherMatchId, createPlayerLeftMessage(otherMatchId, userId));
+				}
 				otherWs.data.matchId = null;
 				otherWs.data.userId = null;
 				otherWs.data.username = null;
