@@ -83,7 +83,7 @@ function Inspector({ selectedClips, onClipUpdate, currentTime }: InspectorProps)
 	}, [
 		clip?.id,
 		clip?.type,
-		clip && (clip.type === "video" || clip.type === "image") ? JSON.stringify((clip.properties as VideoClipProperties)) : null,
+		(clip as VideoClip | ImageClip)?.properties,
 	]);
 
 	const videoRef = React.useRef(video);
@@ -101,7 +101,7 @@ function Inspector({ selectedClips, onClipUpdate, currentTime }: InspectorProps)
 	}, [
 		clip?.id,
 		clip?.type,
-		clip?.type === "audio" ? JSON.stringify((clip.properties as AudioClipProperties)) : null,
+		(clip as AudioClip)?.properties,
 	]);
 
 	const audioRef = React.useRef(audio);

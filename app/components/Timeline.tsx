@@ -674,14 +674,9 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 					})
 					.filter((s): s is { clip: Clip; trackId: string } => s !== null);
 				if (updatedSelections.length > 0) {
-					const newDataKey = JSON.stringify(updatedSelections.map(s => ({ 
-						id: s.clip.id, 
-						trackId: s.trackId,
-						startTime: s.clip.startTime,
-						duration: s.clip.duration,
-						sourceIn: s.clip.sourceIn,
-						properties: s.clip.properties
-					})));
+					const newDataKey = updatedSelections.map(s => 
+						`${s.clip.id}:${s.trackId}:${s.clip.startTime}:${s.clip.duration}:${s.clip.sourceIn}`
+					).join('|');
 					if (newDataKey !== prevSelectedClipsDataRef.current) {
 						prevSelectedClipsDataRef.current = newDataKey;
 						onClipSelect(updatedSelections);
