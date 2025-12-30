@@ -163,15 +163,15 @@ function TimelineClip({
 	const thumbnails =
 		clip.type === "image" ? (clip.thumbnail ? [clip.thumbnail] : []) : clip.thumbnail ? [clip.thumbnail] : generatedThumbnails;
 
+	const waveformSampleCount = useRef(0);
 	const rawSampleCount = Math.max(50, Math.ceil(width / 3));
-	const stableSampleCountRef = useRef(rawSampleCount);
-	if (Math.abs(rawSampleCount - stableSampleCountRef.current) > 20) {
-		stableSampleCountRef.current = rawSampleCount;
+	if (waveformSampleCount.current === 0 || Math.abs(rawSampleCount - waveformSampleCount.current) > 20) {
+		waveformSampleCount.current = rawSampleCount;
 	}
-	const waveformSampleCount = stableSampleCountRef.current;
+
 	const waveformPeaks = useAudioWaveform(
 		clip.type === "audio" ? clip.src : "",
-		waveformSampleCount,
+		waveformSampleCount.current,
 		clip.type === "audio" ? { sourceIn: clip.sourceIn, sourceDuration: clip.duration } : {}
 	);
 

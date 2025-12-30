@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import { Clip, VideoClip, ImageClip, AudioClip, VideoClipProperties, AudioClipProperties } from "../types/timeline";
 import MemoizedIcon from "./MemoizedIcon";
 import {
@@ -92,7 +92,7 @@ function Inspector({ selectedClips, onClipUpdate, currentTime }: InspectorProps)
 		}
 	}, [clip?.type, clip?.id]);
 
-	const updateVideoProperty = useCallback((propertyUpdate: Partial<VideoClipProperties>) => {
+	const updateVideoProperty = (propertyUpdate: Partial<VideoClipProperties>) => {
 		if (clip && (clip.type === "video" || clip.type === "image") && trackId && onClipUpdate) {
 			onClipUpdate(trackId, clip.id, {
 				properties: {
@@ -101,9 +101,9 @@ function Inspector({ selectedClips, onClipUpdate, currentTime }: InspectorProps)
 				},
 			});
 		}
-	}, [clip, trackId, onClipUpdate]);
+	};
 
-	const updateAudioProperty = useCallback((propertyUpdate: Partial<AudioClipProperties>) => {
+	const updateAudioProperty = (propertyUpdate: Partial<AudioClipProperties>) => {
 		if (clip && clip.type === "audio" && trackId && onClipUpdate) {
 			onClipUpdate(trackId, clip.id, {
 				properties: {
@@ -112,41 +112,41 @@ function Inspector({ selectedClips, onClipUpdate, currentTime }: InspectorProps)
 				},
 			});
 		}
-	}, [clip, trackId, onClipUpdate]);
+	};
 
-	const handleRotationChange = useCallback(([value]: number[]) => {
+	const handleRotationChange = ([value]: number[]) => {
 		updateVideoProperty({ rotation: value });
-	}, [updateVideoProperty]);
+	};
 
-	const handleCropLeftChange = useCallback(([value]: number[]) => {
+	const handleCropLeftChange = ([value]: number[]) => {
 		updateVideoProperty({ crop: { ...video.crop, left: value } });
-	}, [updateVideoProperty, video.crop]);
+	};
 
-	const handleCropRightChange = useCallback(([value]: number[]) => {
+	const handleCropRightChange = ([value]: number[]) => {
 		updateVideoProperty({ crop: { ...video.crop, right: value } });
-	}, [updateVideoProperty, video.crop]);
+	};
 
-	const handleCropTopChange = useCallback(([value]: number[]) => {
+	const handleCropTopChange = ([value]: number[]) => {
 		updateVideoProperty({ crop: { ...video.crop, top: value } });
-	}, [updateVideoProperty, video.crop]);
+	};
 
-	const handleCropBottomChange = useCallback(([value]: number[]) => {
+	const handleCropBottomChange = ([value]: number[]) => {
 		updateVideoProperty({ crop: { ...video.crop, bottom: value } });
-	}, [updateVideoProperty, video.crop]);
+	};
 
-	const handleVolumeChange = useCallback(([value]: number[]) => {
+	const handleVolumeChange = ([value]: number[]) => {
 		const clampedDb = Math.min(value, audioMaxDb);
 		const linearVolume = clampedDb <= -60 ? 0 : Math.pow(10, clampedDb / 20);
 		updateAudioProperty({ volume: Math.max(0, linearVolume) });
-	}, [updateAudioProperty, audioMaxDb]);
+	};
 
-	const handlePanChange = useCallback(([value]: number[]) => {
+	const handlePanChange = ([value]: number[]) => {
 		updateAudioProperty({ pan: value / 100 });
-	}, [updateAudioProperty]);
+	};
 
-	const handlePitchChange = useCallback(([value]: number[]) => {
+	const handlePitchChange = ([value]: number[]) => {
 		updateAudioProperty({ pitch: value });
-	}, [updateAudioProperty]);
+	};
 
 	if (!selectedClips || selectedClips.length === 0) {
 		return (
