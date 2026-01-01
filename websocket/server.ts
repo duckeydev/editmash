@@ -335,7 +335,6 @@ const server = Bun.serve({
         console.log(`[WS] No match for ${pathname}, returning 404`);
         return new Response("Not found", { status: 404 });
 	},
-	},
 
 	websocket: {
 		data: {} as WebSocketData,
