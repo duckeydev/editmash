@@ -60,10 +60,12 @@ import {
 export async function fetchLobbies() {
 	try {
 		const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+		console.log(`[WS] Fetching lobbies from: ${apiUrl}`);
 		const [waitingRes, inMatchRes] = await Promise.all([
 			fetch(`${apiUrl}/api/lobbies?status=waiting`),
 			fetch(`${apiUrl}/api/lobbies?status=in_match`),
 		]);
+		console.log(`[WS] Lobby fetch response - waiting: ${waitingRes.status}, inMatch: ${inMatchRes.status}`);
 
 		const lobbies: {
 			id: string;
@@ -93,6 +95,7 @@ export async function fetchLobbies() {
 
 		if (waitingRes.ok) {
 			const data = await waitingRes.json();
+			console.log(`[WS] Found ${data.lobbies?.length || 0} waiting lobbies`);
 			lobbies.push(
 				...data.lobbies.map((lobby: any) => ({
 					id: lobby.id,
@@ -113,6 +116,7 @@ export async function fetchLobbies() {
 
 		if (inMatchRes.ok) {
 			const data = await inMatchRes.json();
+			console.log(`[WS] Found ${data.lobbies?.length || 0} in-match lobbies`);
 			lobbies.push(
 				...data.lobbies.map((lobby: any) => ({
 					id: lobby.id,
@@ -130,7 +134,8 @@ export async function fetchLobbies() {
 				}))
 			);
 		}
-
+console.log(`[WS] Returning ${lobbies.length} total lobbies`);
+		
 		return lobbies;
 	} catch (error) {
 		console.error("[WS] Failed to fetch lobbies:", error);
