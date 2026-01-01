@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     environment:
-      - WS_SERVER_URL=http://websocket:8080
+      - WS_SERVER_URL=http://editmash-websocket:8080
     depends_on:
       - websocket
     restart: unless-stopped
@@ -17,6 +17,7 @@ services:
       - shared_backend
 
   websocket:
+    container_name: editmash-websocket
     build:
       context: .
       target: production-websocket
@@ -27,7 +28,9 @@ services:
       - websocket/.env
     restart: unless-stopped
     networks:
-      - shared_backend
+      shared_backend:
+        aliases:
+          - editmash-websocket
 
 networks:
   shared_backend:
