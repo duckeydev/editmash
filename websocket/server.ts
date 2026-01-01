@@ -217,8 +217,9 @@ const server = Bun.serve({
 	port: PORT,
 
 	async fetch(req, srv) {
-        console.log(`[WS] FETCH ENTRY: ${req.url} method=${req.method}`);
-        
+        console.error(`[WS] FETCH ENTRY: ${req.url} method=${req.method}`);
+        return new Response("DEBUG MODE 2: FETCH RECEIVED");
+        /*
         let url: URL;
         try {
             url = new URL(req.url);
@@ -334,6 +335,7 @@ const server = Bun.serve({
 
         console.log(`[WS] No match for ${pathname}, returning 404`);
         return new Response("Not found", { status: 404 });
+        */
 	},
 
 	websocket: {
