@@ -217,9 +217,9 @@ const server = Bun.serve({
 	port: PORT,
 
 	async fetch(req, srv) {
-        console.error(`[WS] FETCH ENTRY: ${req.url} method=${req.method}`);
-        return new Response("DEBUG MODE 2: FETCH RECEIVED");
-        /*
+        // console.error(`[WS] FETCH ENTRY: ${req.url} method=${req.method}`);
+        // return new Response("DEBUG MODE 2: FETCH RECEIVED");
+        
         let url: URL;
         try {
             url = new URL(req.url);
@@ -229,7 +229,7 @@ const server = Bun.serve({
         }
 
         const pathname = url.pathname.replace(/\/+/g, "/");
-        console.log(`[WS] Path: ${pathname}`);
+        // console.log(`[WS] Path: ${pathname}`);
 
         if (pathname === "/health") {
             return new Response(
@@ -247,7 +247,7 @@ const server = Bun.serve({
         }
 
         if (pathname === "/notify/lobbies" && req.method === "POST") {
-            console.log("[WS] Handling /notify/lobbies");
+            // console.log("[WS] Handling /notify/lobbies");
             const authHeader = req.headers.get("Authorization");
             const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -269,7 +269,7 @@ const server = Bun.serve({
         }
 
         if (pathname === "/notify/match" && req.method === "POST") {
-            console.log("[WS] Handling /notify/match");
+            // console.log("[WS] Handling /notify/match");
             const authHeader = req.headers.get("Authorization");
             const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -307,7 +307,7 @@ const server = Bun.serve({
 
         // WebSocket upgrade
         if (pathname === "/ws") {
-            console.log("[WS] Attempting upgrade for /ws");
+            // console.log("[WS] Attempting upgrade for /ws");
             const connectionId = generateConnectionId();
 
             const upgraded = srv.upgrade(req, {
@@ -333,12 +333,10 @@ const server = Bun.serve({
             return new Response("Upgrade failed", { status: 500 });
         }
 
-        console.log(`[WS] No match for ${pathname}, returning 404`);
+        // console.log(`[WS] No match for ${pathname}, returning 404`);
         return new Response("Not found", { status: 404 });
-        */
 	},
 
-    /*
 	websocket: {
 		data: {} as WebSocketData,
 
@@ -364,7 +362,7 @@ const server = Bun.serve({
 			console.log(`[WS] Socket ready for more data: ${ws.data.id}`);
 		},
 	},
-    */
+
 });
 
 console.log(`[WS] EditMash WebSocket server running on port ${PORT}`);
