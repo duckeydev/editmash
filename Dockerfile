@@ -20,7 +20,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json* ./
 
-RUN npm install --include=dev --platform=linux --arch=x64
+RUN npm install --include=dev --platform=linux --arch=x64 --legacy-peer-deps
 
 COPY . .
 
