@@ -220,7 +220,8 @@ const server = Bun.serve({
 			const url = new URL(req.url);
 			// Normalize path to remove double slashes
 			const pathname = url.pathname.replace(/\/+/g, "/");
-			console.log(`[WS] Request: ${req.method} ${pathname} (raw: ${url.pathname})`);
+			console.log(`[WS] Request: '${req.method}' '${pathname}' (raw: '${url.pathname}')`);
+            console.log(`[WS] Debug: method_len=${req.method.length}, path_len=${pathname.length}`);
 
 			if (pathname === "/health") {
 				return new Response(
@@ -238,6 +239,7 @@ const server = Bun.serve({
 			}
 
 			if (pathname === "/notify/lobbies" && req.method === "POST") {
+                console.log("[WS] Matched /notify/lobbies POST");
 				const authHeader = req.headers.get("Authorization");
 				const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -259,6 +261,7 @@ const server = Bun.serve({
 			}
 
 			if (pathname === "/notify/match" && req.method === "POST") {
+                console.log("[WS] Matched /notify/match POST");
 				const authHeader = req.headers.get("Authorization");
 				const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -296,6 +299,7 @@ const server = Bun.serve({
 
 			// WebSocket upgrade
 			if (pathname === "/ws") {
+                console.log("[WS] Attempting upgrade for /ws");
 				const connectionId = generateConnectionId();
 
 				const upgraded = server.upgrade(req, {
@@ -320,6 +324,7 @@ const server = Bun.serve({
 				return new Response("WS_UPGRADE_FAILED_CUSTOM_MESSAGE", { status: 500 });
 			}
 
+            console.log(`[WS] No match found for ${pathname}, returning 404`);
 			return new Response("Not found", { status: 404 });
 		} catch (error) {
 			console.error("[WS] Fatal error in fetch handler:", error);

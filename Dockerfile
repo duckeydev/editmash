@@ -67,8 +67,8 @@ RUN apt-get update -qq && \
 # Copy source files directly instead of built dist
 COPY websocket/tsconfig.json ./
 COPY websocket/*.ts ./
-COPY src/gen ./src/gen
-COPY lib/clipConstraints.ts ./lib/clipConstraints.ts
+COPY src/gen /src/gen
+COPY lib/clipConstraints.ts /lib/clipConstraints.ts
 
 # Install dependencies
 RUN bun add -d bun-types @bufbuild/protobuf
