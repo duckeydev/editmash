@@ -64,8 +64,15 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=build-websocket --chown=bun:bun /app/websocket/dist ./dist
+# Copy source files directly instead of built dist
+COPY websocket/tsconfig.json ./
+COPY websocket/*.ts ./
+COPY src/gen ./src/gen
+COPY lib/clipConstraints.ts ./lib/clipConstraints.ts
+
+# Install dependencies
+RUN bun add -d bun-types @bufbuild/protobuf
 
 USER bun
 EXPOSE 8080
-CMD ["bun", "run", "dist/server.js"]
+CMD ["bun", "run", "server.ts"]
