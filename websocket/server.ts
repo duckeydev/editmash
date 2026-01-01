@@ -217,9 +217,10 @@ const server = Bun.serve({
 
 	async fetch(req, server) {
 		const url = new URL(req.url);
-		console.log(`[WS] Request: ${req.method} ${url.pathname}`);
+		const pathname = url.pathname.replace(/\/+/g, "/");
+		console.log(`[WS] Request: ${req.method} ${pathname} (raw: ${url.pathname})`);
 
-		if (url.pathname === "/health") {
+		if (pathname === "/health") {
 			return new Response(
 				JSON.stringify({
 					status: "ok",
@@ -234,7 +235,7 @@ const server = Bun.serve({
 			);
 		}
 
-		if (url.pathname === "/notify/lobbies" && req.method === "POST") {
+		if (pathname === "/notify/lobbies" && req.method === "POST") {
 			const authHeader = req.headers.get("Authorization");
 			const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -255,7 +256,7 @@ const server = Bun.serve({
 			});
 		}
 
-		if (url.pathname === "/notify/match" && req.method === "POST") {
+		if (pathname === "/notify/match" && req.method === "POST") {
 			const authHeader = req.headers.get("Authorization");
 			const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -292,7 +293,7 @@ const server = Bun.serve({
 		}
 
 		// WebSocket upgrade
-		if (url.pathname === "/ws") {
+		if (pathname === "/ws") {
 			const connectionId = generateConnectionId();
 
 			const upgraded = server.upgrade(req, {

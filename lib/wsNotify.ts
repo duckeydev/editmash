@@ -32,8 +32,9 @@ export function notifyWsServer(endpoint: string, payload?: WsNotifyPayload): voi
 	}
 
 	(async () => {
+		const fullUrl = `${wsServerUrl}${endpoint}`;
 		try {
-			const response = await fetch(`${wsServerUrl}${endpoint}`, {
+			const response = await fetch(fullUrl, {
 				method: "POST",
 				headers,
 				body: payload ? JSON.stringify(payload) : undefined,
