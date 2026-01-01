@@ -217,7 +217,9 @@ const server = Bun.serve({
 	port: PORT,
 
 	async fetch(req, srv) {
-        console.log(`[WS] FETCH ENTRY: ${req.url}`);
+        console.error(`[WS] FETCH ENTRY: ${req.url}`);
+        return new Response("DEBUG MODE: FETCH RECEIVED");
+		/*
 		try {
 			const url = new URL(req.url);
 			// Normalize path to remove double slashes
@@ -299,6 +301,7 @@ const server = Bun.serve({
 				}
 			}
 
+/*
 			// WebSocket upgrade
 			if (pathname === "/ws") {
                 console.log("[WS] Attempting upgrade for /ws");
@@ -332,6 +335,7 @@ const server = Bun.serve({
 			console.error("[WS] Fatal error in fetch handler:", error);
 			return new Response(`Internal Server Error: ${error}`, { status: 500 });
 		}
+        */
 	},
 
 	websocket: {
