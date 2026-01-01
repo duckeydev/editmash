@@ -22,12 +22,11 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" className={`${fontSans.variable} ${fontMono.variable}`}>
-			<head>
-				<script
-					crossOrigin="anonymous"
-					src="//unpkg.com/react-scan/dist/auto.global.js"
-				/>
-			</head>
+			{process.env.NODE_ENV === "development" && (
+				<head>
+					<script crossOrigin="anonymous" src="//unpkg.com/react-scan/dist/auto.global.js" />
+				</head>
+			)}
 			<body className="antialiased">
 				{children}
 				<Toaster />
