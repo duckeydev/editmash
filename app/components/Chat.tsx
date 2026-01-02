@@ -266,16 +266,17 @@ export function Chat({ className = "" }: ChatProps) {
 
 			setWindowDimensions({ width: newWidth, height: newHeight });
 
-			if (dragPosition) {
-				const boundedX = Math.max(12, Math.min(newWidth - 12, dragPosition.x));
-				const boundedY = Math.max(44, Math.min(newHeight - 12, dragPosition.y));
-				setDragPosition({ x: boundedX, y: boundedY });
-			}
+			setDragPosition((current) => {
+				if (!current) return null;
+				const boundedX = Math.max(12, Math.min(newWidth - 12, current.x));
+				const boundedY = Math.max(44, Math.min(newHeight - 12, current.y));
+				return { x: boundedX, y: boundedY };
+			});
 		};
 
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
-	}, [dragPosition]);
+	}, []);
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
