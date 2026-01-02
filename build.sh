@@ -20,8 +20,8 @@ echo "🔍 Checking container status..."
 docker compose ps
 
 echo "📊 Checking service health..."
-echo "Main app: http://localhost:5900"
-echo "WebSocket: http://localhost:8082/health"
+echo "Main app: http://localhost:6900"
+echo "WebSocket: http://localhost:8084/health"
 
 echo "📋 Tailing logs (press Ctrl+C to stop)..."
 docker compose logs -f

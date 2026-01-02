@@ -5,29 +5,32 @@ services:
       target: production-main
       dockerfile: Dockerfile
     ports:
-      - "5900-5907:3000"
+      - "6900:3000"
     env_file:
       - .env
+    environment:
+      - WS_SERVER_URL=http://editmash-websocket:8080
     depends_on:
       - websocket
     restart: unless-stopped
     networks:
       - shared_backend
-    deploy:
-      replicas: 8
 
   websocket:
+    container_name: editmash-websocket
     build:
       context: .
       target: production-websocket
       dockerfile: Dockerfile
     ports:
-      - "8082:8080"
+      - "8084:8080"
     env_file:
       - websocket/.env
     restart: unless-stopped
     networks:
-      - shared_backend
+      shared_backend:
+        aliases:
+          - editmash-websocket
 
 networks:
   shared_backend:
