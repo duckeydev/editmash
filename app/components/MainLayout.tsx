@@ -161,7 +161,7 @@ const MainLayout = forwardRef<MainLayoutRef, MainLayoutProps>(
 		const handleGlobalDragLeave = useCallback((e: React.DragEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
-			dragCounterRef.current--;
+			dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
 
 			if (dragCounterRef.current === 0) {
 				setIsDragOver(false);
@@ -294,6 +294,7 @@ const MainLayout = forwardRef<MainLayoutRef, MainLayoutProps>(
 		);
 	}
 );
+
 MainLayout.displayName = "MainLayout";
 
 export default MainLayout;
