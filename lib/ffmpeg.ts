@@ -582,7 +582,7 @@ export async function downloadMediaFiles(mediaUrls: Record<string, string>): Pro
 	const fileMap = new Map<string, string>();
 
 	const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-	const baseUrl = envBaseUrl.startsWith("http") ? envBaseUrl : envBaseUrl ? `https://${envBaseUrl}` : "http://localhost:3000";
+	const baseUrl = envBaseUrl.startsWith("http") ? envBaseUrl : envBaseUrl ? `https://${envBaseUrl}` : "http://app:3000";
 
 	for (const [src, url] of Object.entries(mediaUrls)) {
 		try {

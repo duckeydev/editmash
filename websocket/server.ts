@@ -228,109 +228,117 @@ async function notifyLobbyChange(): Promise<void> {
 const server = Bun.serve({
 	port: PORT,
 
-	async fetch(req, server) {
-		const url = new URL(req.url);
+	async fetch(req, srv) {
+        let url: URL;
+        try {
+            url = new URL(req.url);
+        } catch (e) {
+            console.error(`[WS] Failed to parse URL: ${req.url}`, e);
+            return new Response("Invalid URL", { status: 400 });
+        }
 
-		if (url.pathname === "/health") {
-			return new Response(
-				JSON.stringify({
-					status: "ok",
-					connections: connections.size,
-					matches: matchPlayers.size,
-					lobbySubscribers: lobbySubscribers.size,
-					timestamp: Date.now(),
-				}),
-				{
-					headers: { "Content-Type": "application/json" },
-				}
-			);
-		}
+        const pathname = url.pathname.replace(/\/+/g, "/");
 
-		if (url.pathname === "/notify/lobbies" && req.method === "POST") {
-			const authHeader = req.headers.get("Authorization");
-			const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+        if (pathname === "/health") {
+            return new Response(
+                JSON.stringify({
+                    status: "ok",
+                    connections: connections.size,
+                    matches: matchPlayers.size,
+                    lobbySubscribers: lobbySubscribers.size,
+                    timestamp: Date.now(),
+                }),
+                {
+                    headers: { "Content-Type": "application/json" },
+                }
+            );
+        }
 
-			if (!secureCompare(providedKey, WS_API_KEY)) {
-				console.warn("[WS] Unauthorized /notify/lobbies request");
-				return new Response(JSON.stringify({ error: "Unauthorized" }), {
-					status: 401,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
+        if (pathname === "/notify/lobbies" && req.method === "POST") {
+            const authHeader = req.headers.get("Authorization");
+            const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-			notifyLobbyChange().catch((error) => {
-				console.error("[WS] Error in notifyLobbyChange:", error);
-			});
+            if (!secureCompare(providedKey, WS_API_KEY)) {
+                console.warn("[WS] Unauthorized /notify/lobbies request");
+                return new Response(JSON.stringify({ error: "Unauthorized" }), {
+                    status: 401,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
 
-			return new Response(JSON.stringify({ ok: true }), {
-				headers: { "Content-Type": "application/json" },
-			});
-		}
+            notifyLobbyChange().catch((error) => {
+                console.error("[WS] Error in notifyLobbyChange:", error);
+            });
 
-		if (url.pathname === "/notify/match" && req.method === "POST") {
-			const authHeader = req.headers.get("Authorization");
-			const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+            return new Response(JSON.stringify({ ok: true }), {
+                headers: { "Content-Type": "application/json" },
+            });
+        }
 
-			if (!secureCompare(providedKey, WS_API_KEY)) {
-				console.warn("[WS] Unauthorized /notify/match request");
-				return new Response(JSON.stringify({ error: "Unauthorized" }), {
-					status: 401,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
+        if (pathname === "/notify/match" && req.method === "POST") {
+            const authHeader = req.headers.get("Authorization");
+            const providedKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-			try {
-				const body = await req.json();
-				const { matchId, status, timeRemaining } = body;
+            if (!secureCompare(providedKey, WS_API_KEY)) {
+                console.warn("[WS] Unauthorized /notify/match request");
+                return new Response(JSON.stringify({ error: "Unauthorized" }), {
+                    status: 401,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
 
-				if (matchId) {
-					const players = matchPlayers.get(matchId);
-					if (players && players.size > 0) {
-						broadcast(matchId, createMatchStatusMessage(matchId, status, timeRemaining, players.size));
-						console.log(`[WS] Broadcast match status to ${players.size} players: ${matchId} -> ${status}`);
-					}
-				}
+            try {
+                const body = await req.json();
+                const { matchId, status, timeRemaining } = body;
 
-				return new Response(JSON.stringify({ ok: true }), {
-					headers: { "Content-Type": "application/json" },
-				});
-			} catch (error) {
-				console.error("[WS] Error parsing /notify/match body:", error);
-				return new Response(JSON.stringify({ error: "Invalid request body" }), {
-					status: 400,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-		}
+                if (matchId) {
+                    const players = matchPlayers.get(matchId);
+                    if (players && players.size > 0) {
+                        broadcast(matchId, createMatchStatusMessage(matchId, status, timeRemaining, players.size));
+                        console.log(`[WS] Broadcast match status to ${players.size} players: ${matchId} -> ${status}`);
+                    }
+                }
 
-		// WebSocket upgrade
-		if (url.pathname === "/ws") {
-			const connectionId = generateConnectionId();
+                return new Response(JSON.stringify({ ok: true }), {
+                    headers: { "Content-Type": "application/json" },
+                });
+            } catch (error) {
+                console.error("[WS] Error parsing /notify/match body:", error);
+                return new Response(JSON.stringify({ error: "Invalid request body" }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+        }
 
-			const upgraded = server.upgrade(req, {
-				data: {
-					id: connectionId,
-					matchId: null,
-					lobbyId: null,
-					userId: null,
-					username: null,
-					userImage: null,
-					highlightColor: null,
-					subscribedToLobbies: false,
-					connectedAt: Date.now(),
-					lastPing: Date.now(),
-					zone: null,
-				} satisfies WebSocketData,
-			});
+        // WebSocket upgrade
+        if (pathname === "/ws") {
+            const connectionId = generateConnectionId();
 
-			if (upgraded) {
-				return undefined;
-			}
+            const upgraded = srv.upgrade(req, {
+                data: {
+                    id: connectionId,
+                    matchId: null,
+                    userId: null,
+                    username: null,
+                    userImage: null,
+                    highlightColor: null,
+                    subscribedToLobbies: false,
+                    connectedAt: Date.now(),
+                    lastPing: Date.now(),
+                    zone: null,
+                } satisfies WebSocketData,
+            });
 
-			return new Response("WebSocket upgrade failed", { status: 500 });
-		}
+            if (upgraded) {
+                return undefined;
+            }
 
-		return new Response("Not found", { status: 404 });
+            console.error("[WS] Upgrade failed");
+            return new Response("Upgrade failed", { status: 500 });
+        }
+
+        return new Response("Not found", { status: 404 });
 	},
 
 	websocket: {
@@ -358,6 +366,7 @@ const server = Bun.serve({
 			console.log(`[WS] Socket ready for more data: ${ws.data.id}`);
 		},
 	},
+
 });
 
 console.log(`[WS] EditMash WebSocket server running on port ${PORT}`);

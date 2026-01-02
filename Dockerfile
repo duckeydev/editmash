@@ -20,26 +20,27 @@ WORKDIR /app
 
 COPY package.json package-lock.json* ./
 
-RUN npm install --include=dev --platform=linux --arch=x64
+RUN npm install --include=dev --platform=linux --arch=x64 --legacy-peer-deps
 
 COPY . .
 
 RUN npm run build
 
 FROM base-node AS build-websocket
-WORKDIR /websocket
+WORKDIR /app
 
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-COPY websocket/tsconfig.json ./
-COPY websocket/*.ts ./
+COPY websocket/tsconfig.json ./websocket/
+COPY websocket/*.ts ./websocket/
 
 COPY src/gen ./src/gen
 COPY lib/clipConstraints.ts ./lib/clipConstraints.ts
 
 RUN bun add -d bun-types @bufbuild/protobuf
 
+WORKDIR /app/websocket
 RUN bun build server.ts --outdir dist --target bun
 
 FROM base-node AS production-main
@@ -60,8 +61,15 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=build-websocket --chown=bun:bun /websocket/dist ./dist
+# Copy source files directly instead of built dist
+COPY websocket/tsconfig.json ./
+COPY websocket/*.ts ./
+COPY src/gen /src/gen
+COPY lib/clipConstraints.ts /lib/clipConstraints.ts
+
+# Install dependencies
+RUN bun add -d bun-types @bufbuild/protobuf
 
 USER bun
 EXPOSE 8080
-CMD ["bun", "run", "dist/server.js"]
+CMD ["bun", "run", "server.ts"]
