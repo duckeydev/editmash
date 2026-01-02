@@ -13,31 +13,6 @@ const MESSAGE_VISIBLE_DURATION = 8000;
 const MESSAGE_FADE_DURATION = 2000;
 const UNFOCUS_DELAY = 1000;
 
-function getSnapPositions() {
-	return {
-		"bottom-left": { x: 12, y: window.innerHeight - 12 },
-		"bottom-right": { x: window.innerWidth - 12, y: window.innerHeight - 12 },
-		"top-left": { x: 12, y: 44 },
-		"top-right": { x: window.innerWidth - 12, y: 44 },
-	};
-}
-
-function findNearestPosition(x: number, y: number): ChatPosition {
-	const positions = getSnapPositions();
-	let nearest: ChatPosition = "bottom-left";
-	let minDistance = Infinity;
-
-	for (const [key, pos] of Object.entries(positions)) {
-		const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
-		if (distance < minDistance) {
-			minDistance = distance;
-			nearest = key as ChatPosition;
-		}
-	}
-
-	return nearest;
-}
-
 interface ChatProps {
 	className?: string;
 }
@@ -60,8 +35,40 @@ export function Chat({ className = "" }: ChatProps) {
 	const [isDragging, setIsDragging] = useState(false);
 	const [isSnapping, setIsSnapping] = useState(false);
 	const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+	const [windowDimensions, setWindowDimensions] = useState({
+		width: typeof window !== "undefined" ? window.innerWidth : 1920,
+		height: typeof window !== "undefined" ? window.innerHeight : 1080,
+	});
 	const dragStartRef = useRef<{ mouseX: number; mouseY: number; elemX: number; elemY: number } | null>(null);
 	const chatContainerRef = useRef<HTMLDivElement>(null);
+
+	const getSnapPositions = useCallback(() => {
+		return {
+			"bottom-left": { x: 12, y: windowDimensions.height - 12 },
+			"bottom-right": { x: windowDimensions.width - 12, y: windowDimensions.height - 12 },
+			"top-left": { x: 12, y: 44 },
+			"top-right": { x: windowDimensions.width - 12, y: 44 },
+		};
+	}, [windowDimensions]);
+
+	const findNearestPosition = useCallback(
+		(x: number, y: number): ChatPosition => {
+			const positions = getSnapPositions();
+			let nearest: ChatPosition = "bottom-left";
+			let minDistance = Infinity;
+
+			for (const [key, pos] of Object.entries(positions)) {
+				const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+				if (distance < minDistance) {
+					minDistance = distance;
+					nearest = key as ChatPosition;
+				}
+			}
+
+			return nearest;
+		},
+		[getSnapPositions]
+	);
 
 	useEffect(() => {
 		const unsubscribe = viewSettingsStore.subscribe(() => {
@@ -209,12 +216,12 @@ export function Chat({ className = "" }: ChatProps) {
 			const deltaX = e.clientX - dragStartRef.current.mouseX;
 			const deltaY = e.clientY - dragStartRef.current.mouseY;
 
-			const newX = Math.max(12, Math.min(window.innerWidth - 12, dragStartRef.current.elemX + deltaX));
-			const newY = Math.max(44, Math.min(window.innerHeight - 12, dragStartRef.current.elemY + deltaY));
+			const newX = Math.max(12, Math.min(windowDimensions.width - 12, dragStartRef.current.elemX + deltaX));
+			const newY = Math.max(44, Math.min(windowDimensions.height - 12, dragStartRef.current.elemY + deltaY));
 
 			setDragPosition({ x: newX, y: newY });
 		},
-		[isDragging]
+		[isDragging, windowDimensions]
 	);
 
 	const handleDragEnd = useCallback(() => {
@@ -251,6 +258,24 @@ export function Chat({ className = "" }: ChatProps) {
 			}
 		};
 	}, []);
+
+	useEffect(() => {
+		const handleResize = () => {
+			const newWidth = window.innerWidth;
+			const newHeight = window.innerHeight;
+
+			setWindowDimensions({ width: newWidth, height: newHeight });
+
+			if (dragPosition) {
+				const boundedX = Math.max(12, Math.min(newWidth - 12, dragPosition.x));
+				const boundedY = Math.max(44, Math.min(newHeight - 12, dragPosition.y));
+				setDragPosition({ x: boundedX, y: boundedY });
+			}
+		};
+
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, [dragPosition]);
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -314,9 +339,9 @@ export function Chat({ className = "" }: ChatProps) {
 		if ((isDragging || isSnapping) && dragPosition) {
 			return {
 				left: isLeft ? dragPosition.x : "auto",
-				right: !isLeft ? window.innerWidth - dragPosition.x : "auto",
+				right: !isLeft ? windowDimensions.width - dragPosition.x : "auto",
 				top: isTop ? dragPosition.y : "auto",
-				bottom: !isTop ? window.innerHeight - dragPosition.y : "auto",
+				bottom: !isTop ? windowDimensions.height - dragPosition.y : "auto",
 			};
 		}
 
