@@ -128,11 +128,20 @@ export default function LobbyPage({ params }: { params: Promise<{ lobbyId: strin
 					wsRef.current.close();
 				} else if (wsRef.current.readyState === WebSocket.CONNECTING) {
 					const ws = wsRef.current;
+					const timeoutId = setTimeout(() => {
+						ws.close();
+					}, 5000);
 					const handleConnectedLeave = () => {
+						clearTimeout(timeoutId);
 						ws.send(serializeMessage(createLeaveLobbyMessage(lobbyId, playerId)));
 						ws.close();
 					};
+					const handleError = () => {
+						clearTimeout(timeoutId);
+						ws.close();
+					};
 					ws.addEventListener('open', handleConnectedLeave, { once: true });
+					ws.addEventListener('error', handleError, { once: true });
 				} else {
 					wsRef.current.close();
 				}

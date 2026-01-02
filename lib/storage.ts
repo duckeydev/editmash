@@ -264,7 +264,6 @@ export async function getPlayerActiveLobby(userId: string): Promise<{ lobbyId: s
 		.select({
 			lobbyId: lobbyPlayers.lobbyId,
 			lobbyName: lobbies.name,
-			lobbyStatus: lobbies.status,
 		})
 		.from(lobbyPlayers)
 		.innerJoin(lobbies, eq(lobbyPlayers.lobbyId, lobbies.id))
