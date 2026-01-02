@@ -303,7 +303,7 @@ const MediaCardDock = forwardRef<MediaCardDockRef, MediaCardDockProps>(({ maxCli
 		for (const file of filesToProcess) {
 			await processFile(file);
 		}
-	}, [myMediaItems.length, maxClips, isUnlimited]);
+	}, [myMediaItems.length, maxClips, isUnlimited, processFile]);
 
 	useImperativeHandle(ref, () => ({
 		handleExternalDrop: processFilesFromDrop
