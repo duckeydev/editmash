@@ -238,7 +238,7 @@ export function Chat({ className = "" }: ChatProps) {
 			dragStartRef.current = null;
 			setTimeout(() => setIsSnapping(false), 300);
 		}, 50);
-	}, [isDragging, dragPosition]);
+	}, [isDragging, dragPosition, findNearestPosition]);
 
 	useEffect(() => {
 		if (isDragging) {

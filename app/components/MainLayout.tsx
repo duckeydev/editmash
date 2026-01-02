@@ -151,7 +151,7 @@ const MainLayout = forwardRef<MainLayoutRef, MainLayoutProps>(
 		const handleGlobalDragEnter = useCallback((e: React.DragEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
-			dragCounterRef.current++;
+			dragCounterRef.current = Math.max(0, dragCounterRef.current) + 1;
 
 			if (e.dataTransfer.types.includes("Files")) {
 				setIsDragOver(true);
@@ -232,7 +232,8 @@ const MainLayout = forwardRef<MainLayoutRef, MainLayoutProps>(
 			>
 				{isDragOver && (
 					<div className="fixed inset-0 z-90 bg-black/60 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-						<div className="rounded-2xl flex flex-col items-center gap-3 animate-pulse">
+						<div className="bg-foreground/90 px-8 py-6 rounded-2xl flex flex-col items-center gap-3 border-2 border-primary/50 animate-pulse">
+							<HugeiconsIcon icon={Upload04Icon} size={48} strokeWidth={2} className="text-primary" />
 							<span className="text-xl font-semibold text-primary-foreground">Drop files to upload</span>
 						</div>
 					</div>
@@ -293,7 +294,6 @@ const MainLayout = forwardRef<MainLayoutRef, MainLayoutProps>(
 		);
 	}
 );
-
 MainLayout.displayName = "MainLayout";
 
 export default MainLayout;
