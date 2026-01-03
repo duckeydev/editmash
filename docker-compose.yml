@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: editmash-app
     build:
       context: .
       target: production-main
@@ -16,7 +17,7 @@ services:
     networks:
       shared_backend:
         aliases:
-          - app
+          - editmash-app
 
   websocket:
     container_name: editmash-websocket
