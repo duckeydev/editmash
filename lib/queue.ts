@@ -92,9 +92,9 @@ async function renewSlot(token: string): Promise<void> {
 	if (!token) return;
 
 	const now = Date.now();
-	const result = await getRedis().zadd(ACTIVE_SLOTS_KEY, "XX", now, token);
+	const result = await getRedis().zadd(ACTIVE_SLOTS_KEY, "XX", "CH", now, token);
 
-	if (result === 0) {
+	if (result === 1) {
 		console.log(`Slot renewed for token: ${token}`);
 	} else {
 		console.warn(`Failed to renew slot - token not found`);
