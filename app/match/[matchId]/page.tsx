@@ -393,7 +393,24 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 		};
 	}, []);
 
-	if (playerLoading || isLoading || !stablePlayerRef.current || !profileLoaded) {
+	if (playerLoading || isLoading) {
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="animate-pulse text-muted-foreground">Loading match...</div>
+			</div>
+		);
+	}
+
+	if (!playerLoading && !playerId) {
+		router.push("/");
+		return (
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="animate-pulse text-muted-foreground">Redirecting...</div>
+			</div>
+		);
+	}
+
+	if (!stablePlayerRef.current || !profileLoaded) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<div className="animate-pulse text-muted-foreground">Loading match...</div>
