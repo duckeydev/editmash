@@ -9,8 +9,10 @@ import os from "os";
 const JOBS_KEY = "render:jobs";
 const QUEUE_KEY = "render:queue";
 const ACTIVE_SLOTS_KEY = "render:active_slots";
+const RENDER_PROGRESS_PREFIX = "render:progress:";
 const SLOT_TTL = 60;
 const HEARTBEAT_INTERVAL = 15000;
+const PROGRESS_TTL = 300;
 
 const MAX_SLOTS = Math.max(Math.floor(os.cpus().length / 2) - 4, 1);
 
@@ -146,6 +148,15 @@ export async function getQueuePosition(jobId: string): Promise<number | null> {
 	if (queueIndex === -1) return null;
 
 	return queueIndex + 1;
+}
+
+export async function getRenderProgress(matchId: string): Promise<number | null> {
+	const progress = await getRedis().get(`${RENDER_PROGRESS_PREFIX}${matchId}`);
+	return progress ? parseFloat(progress) : null;
+}
+
+export async function setRenderProgress(matchId: string, progress: number): Promise<void> {
+	await getRedis().set(`${RENDER_PROGRESS_PREFIX}${matchId}`, progress.toString(), "EX", PROGRESS_TTL);
 }
 
 export async function createRenderJob(job: Omit<RenderJob, "id" | "status" | "progress" | "createdAt">): Promise<RenderJob> {

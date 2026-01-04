@@ -3,7 +3,7 @@ import { getMatchById, getMatchByIdInternal, updateMatchTimeline } from "@/lib/s
 import { MatchStateResponse, Match } from "@/app/types/match";
 import type { TimelineState } from "@/app/types/timeline";
 import { secureCompare } from "@/lib/security";
-import { getQueuePosition, getJobById } from "@/lib/queue";
+import { getQueuePosition, getJobById, getRenderProgress } from "@/lib/queue";
 
 const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -42,12 +42,14 @@ export async function GET(
 			let queuePosition: number | null = null;
 			let renderProgress: number | null = null;
 
-			if (match.renderJobId && match.status === "rendering") {
-				const job = await getJobById(match.renderJobId);
-				if (job) {
-					queuePosition = job.status === "pending" ? await getQueuePosition(match.renderJobId) : null;
-					renderProgress = job.status === "processing" ? job.progress : null;
+			if (match.status === "rendering") {
+				if (match.renderJobId) {
+					const job = await getJobById(match.renderJobId);
+					if (job && job.status === "pending") {
+						queuePosition = await getQueuePosition(match.renderJobId);
+					}
 				}
+				renderProgress = await getRenderProgress(match.id);
 			}
 
 			return NextResponse.json({
@@ -80,12 +82,14 @@ export async function GET(
 
 		let queuePosition: number | null = null;
 		let renderProgress: number | null = null;
-		if (match.renderJobId && match.status === "rendering") {
-			const job = await getJobById(match.renderJobId);
-			if (job) {
-				queuePosition = job.status === "pending" ? await getQueuePosition(match.renderJobId) : null;
-				renderProgress = job.status === "processing" ? job.progress : null;
+		if (match.status === "rendering") {
+			if (match.renderJobId) {
+				const job = await getJobById(match.renderJobId);
+				if (job && job.status === "pending") {
+					queuePosition = await getQueuePosition(match.renderJobId);
+				}
 			}
+			renderProgress = await getRenderProgress(match.id);
 		}
 
 		return NextResponse.json({
