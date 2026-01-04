@@ -194,6 +194,7 @@ async function processNextJob(): Promise<void> {
 
 	let slotToken: string | null = null;
 	let jobId: string | null = null;
+	let job: RenderJob | null = null;
 
 	try {
 		slotToken = await tryAcquireSlot();
@@ -211,7 +212,7 @@ async function processNextJob(): Promise<void> {
 			return;
 		}
 
-		const job = await getJob(jobId);
+		job = await getJob(jobId);
 		if (!job) {
 			console.warn(`Job ${jobId} not found in storage`);
 			await releaseSlot(slotToken);
@@ -275,18 +276,6 @@ async function processNextJob(): Promise<void> {
 			outputFileId: uploadedFile.fileId,
 		});
 
-		if (job.sourceFileIds && job.sourceFileIds.length > 0) {
-			const deleteResults = await deleteMultipleFromB2(job.sourceFileIds);
-			const failures = deleteResults.filter((r) => !r.success);
-			if (failures.length > 0) {
-				console.error(
-					`Failed to delete ${failures.length}/${deleteResults.length} source files:`,
-					failures.map((f) => `${f.fileName}: ${f.error}`).join(", ")
-				);
-			} else {
-				console.log(`Successfully deleted ${deleteResults.length} source files`);
-			}
-		}
 	} catch (error) {
 		if (jobId) {
 			await updateJob(jobId, {
@@ -297,6 +286,23 @@ async function processNextJob(): Promise<void> {
 		}
 		console.error(`Error processing job:`, error);
 	} finally {
+		if (job && job.sourceFileIds && job.sourceFileIds.length > 0) {
+			try {
+				const deleteResults = await deleteMultipleFromB2(job.sourceFileIds);
+				const failures = deleteResults.filter((r) => !r.success);
+				if (failures.length > 0) {
+					console.error(
+						`Failed to delete ${failures.length}/${deleteResults.length} source files:`,
+						failures.map((f) => `${f.fileName}: ${f.error}`).join(", ")
+					);
+				} else {
+					console.log(`Successfully deleted ${deleteResults.length} source files`);
+				}
+			} catch (cleanupError) {
+				console.error(`Error during source file cleanup:`, cleanupError);
+			}
+		}
+
 		if (slotToken) {
 			stopHeartbeat();
 			await releaseSlot(slotToken);
@@ -308,6 +314,7 @@ async function processNextJob(): Promise<void> {
 		}
 	}
 }
+
 
 export async function cancelJob(jobId: string): Promise<boolean> {
 	const job = await getJob(jobId);
