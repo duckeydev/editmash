@@ -6,6 +6,8 @@ import {
 	matchPlayerClipCounts,
 	pendingBatches,
 	matchMessageQueues,
+	activeVoteKicks,
+	matchBannedUsers,
 	BATCH_WINDOW_MS,
 	type TimelineClip,
 	type CachedTimeline,
@@ -107,6 +109,8 @@ export function cleanupMatchResources(matchId: string): void {
 	matchConfigs.delete(matchId);
 	matchPlayerClipCounts.delete(matchId);
 	matchMessageQueues.delete(matchId);
+	activeVoteKicks.delete(matchId);
+	matchBannedUsers.delete(matchId);
 
 	for (const [key, batch] of pendingBatches.entries()) {
 		if (key.startsWith(`${matchId}:`)) {

@@ -78,6 +78,7 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 	const [profileLoaded, setProfileLoaded] = useState(false);
 	const [serverTimeRemaining, setServerTimeRemaining] = useState<number | null>(null);
 	const [localTimeRemaining, setLocalTimeRemaining] = useState<number | null>(null);
+	const [isKicked, setIsKicked] = useState(false);
 
 	const mainLayoutRef = useRef<MainLayoutRef>(null);
 	const lastServerSyncRef = useRef<number>(Date.now());
@@ -350,6 +351,10 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 		toast.error("Connection to server failed after multiple attempts");
 	}, []);
 
+	const handleKicked = useCallback(() => {
+		setIsKicked(true);
+	}, []);
+
 	const handleMatchStatusChange = useCallback(
 		(status: string) => {
 			if (status === "rendering" || status === "completed" || status === "completing" || status === "failed") {
@@ -429,6 +434,7 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 				onPlayerJoined={handlePlayerJoined}
 				onPlayerLeft={handlePlayerLeft}
 				onConnectionFailed={handleConnectionFailed}
+				onKicked={handleKicked}
 				onMatchStatusChange={handleMatchStatusChange}
 				onTimelineSyncRequested={handleTimelineSyncRequested}
 			>
@@ -438,6 +444,7 @@ export default function MatchPage({ params }: { params: Promise<{ matchId: strin
 					maxClipsPerUser={maxClipsPerUser}
 					matchConfig={match?.config}
 					initialTimeline={match?.timeline ? transformTimelineFromApi(match.timeline) : undefined}
+					isKicked={isKicked}
 				/>
 			</MatchWS>
 		</TutorialProvider>
@@ -450,9 +457,11 @@ interface MatchContentProps {
 	maxClipsPerUser: number;
 	matchConfig?: MatchConfig;
 	initialTimeline?: TimelineState;
+	isKicked: boolean;
 }
 
-function MatchContent({ localTimeRemaining, mainLayoutRef, maxClipsPerUser, matchConfig, initialTimeline }: MatchContentProps) {
+function MatchContent({ localTimeRemaining, mainLayoutRef, maxClipsPerUser, matchConfig, initialTimeline, isKicked }: MatchContentProps) {
+	const router = useRouter();
 	const ws = useMatchWebSocketOptional();
 	const isDisconnected = ws?.status === "disconnected" || ws?.status === "connecting";
 	const isFailed = ws?.status === "failed";
@@ -638,7 +647,25 @@ function MatchContent({ localTimeRemaining, mainLayoutRef, maxClipsPerUser, matc
 				clipSizeMax={matchConfig?.clipSizeMax}
 			/>
 
-			{isFailed && (
+			{isKicked && (
+				<div className="fixed inset-0 z-100 flex items-center justify-center bg-background/90 backdrop-blur-xl">
+					<div className="flex flex-col items-center gap-4 text-center">
+						<HugeiconsIcon icon={WifiOff02Icon} size={128} className="text-red-500" />
+						<span className="text-lg font-semibold text-destructive">You have been kicked</span>
+						<span className="text-sm text-muted-foreground max-w-xs">
+							You have been voted out of this match. You cannot rejoin.
+						</span>
+						<button
+							onClick={() => router.push("/")}
+							className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+						>
+							Back to Home
+						</button>
+					</div>
+				</div>
+			)}
+
+			{isFailed && !isKicked && (
 				<div className="fixed inset-0 z-100 flex items-center justify-center bg-background/90 backdrop-blur-xl">
 					<div className="flex flex-col items-center gap-4 text-center">
 						<HugeiconsIcon icon={WifiOff02Icon} size={128} className="text-red-500" />
@@ -656,7 +683,7 @@ function MatchContent({ localTimeRemaining, mainLayoutRef, maxClipsPerUser, matc
 				</div>
 			)}
 
-			{isDisconnected && !isFailed && (
+			{isDisconnected && !isFailed && !isKicked && (
 				<div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 backdrop-blur-xl">
 					<div className="flex flex-col items-center gap-3">
 						<HugeiconsIcon icon={WifiOff02Icon} size={128} className="text-red-500 animate-pulse" />
