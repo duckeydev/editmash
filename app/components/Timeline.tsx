@@ -1292,7 +1292,7 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 							top: 0,
 							height: "100%",
 							willChange: isPlaying ? "transform" : "auto",
-							zIndex: 70,
+							zIndex: 20,
 						}}
 					>
 						<div className="absolute w-0.5 bg-red-500 h-full" />
@@ -1305,7 +1305,6 @@ const Timeline = forwardRef<TimelineRef, TimelineProps>(
 								left: "1px",
 								transform: "translateX(-50%)",
 								display: "block",
-								zIndex: currentTime === 0 ? 80 : "inherit",
 							}}
 							onMouseDown={(e) => {
 								e.stopPropagation();
