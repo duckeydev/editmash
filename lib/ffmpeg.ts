@@ -622,6 +622,8 @@ export async function downloadMediaFiles(mediaUrls: Record<string, string>): Pro
 
 	const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
 	const baseUrl = envBaseUrl.startsWith("http") ? envBaseUrl : envBaseUrl ? `https://${envBaseUrl}` : "http://app:3000";
+	
+	console.log(`[FFmpeg] Downloading ${Object.keys(mediaUrls).length} media files (baseUrl: ${baseUrl})`);
 
 	for (const [src, url] of Object.entries(mediaUrls)) {
 		try {
@@ -631,10 +633,11 @@ export async function downloadMediaFiles(mediaUrls: Record<string, string>): Pro
 			}
 
 			const absoluteUrl = url.startsWith("/") ? `${baseUrl}${url}` : url;
+			console.log(`[FFmpeg] Downloading: ${absoluteUrl}`);
 
 			const response = await fetch(absoluteUrl);
 			if (!response.ok) {
-				throw new Error(`Failed to download ${absoluteUrl}: ${response.statusText}`);
+				throw new Error(`Failed to download ${absoluteUrl}: ${response.status} ${response.statusText}`);
 			}
 
 			const buffer = await response.arrayBuffer();
@@ -644,12 +647,16 @@ export async function downloadMediaFiles(mediaUrls: Record<string, string>): Pro
 
 			await fs.writeFile(filePath, Buffer.from(buffer));
 			fileMap.set(src, filePath);
+			console.log(`[FFmpeg] Downloaded: ${src} -> ${filePath} (${buffer.byteLength} bytes)`);
 		} catch (error) {
-			console.error(`Error downloading ${url}:`, error);
-			throw error;
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorCause = error instanceof Error && error.cause ? ` (cause: ${JSON.stringify(error.cause)})` : '';
+			console.error(`[FFmpeg] Error downloading ${url}:`, errorMessage + errorCause);
+			throw new Error(`Failed to download media file ${url}: ${errorMessage}`);
 		}
 	}
 
+	console.log(`[FFmpeg] Successfully downloaded ${fileMap.size} files`);
 	return fileMap;
 }
 

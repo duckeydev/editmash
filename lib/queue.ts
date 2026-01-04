@@ -225,12 +225,15 @@ async function processNextJob(): Promise<void> {
 		const mediaUrls: Record<string, string> = {};
 
 		const allClips = job.timelineState.tracks.flatMap((track) => track.clips);
+		console.log(`[Queue] Job ${jobId}: Processing ${allClips.length} clips from ${job.timelineState.tracks.length} tracks`);
+		
 		allClips.forEach((clip) => {
 			if (!mediaUrls[clip.src]) {
 				mediaUrls[clip.src] = clip.src;
 			}
 		});
 
+		console.log(`[Queue] Job ${jobId}: Downloading ${Object.keys(mediaUrls).length} unique media files`);
 		const mediaFiles = await downloadMediaFiles(mediaUrls);
 		await updateJob(jobId, { progress: 10 });
 
@@ -239,6 +242,7 @@ async function processNextJob(): Promise<void> {
 		const outputFileName = `render_${jobId}.mp4`;
 		const outputPath = path.join(outputDir, outputFileName);
 
+		console.log(`[Queue] Job ${jobId}: Starting render to ${outputPath}`);
 		await renderTimeline(job.timelineState, mediaFiles, outputPath, (progress) => {
 			const adjustedProgress = 10 + (progress / 100) * 70;
 			updateJob(jobId || "", { progress: adjustedProgress }).catch((err) => {
@@ -246,6 +250,7 @@ async function processNextJob(): Promise<void> {
 			});
 		});
 
+		console.log(`[Queue] Job ${jobId}: Render complete, uploading to B2`);
 		await updateJob(jobId, { progress: 80 });
 
 		const outputBuffer = await fs.readFile(outputPath);

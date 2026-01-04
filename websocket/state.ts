@@ -120,6 +120,19 @@ export const matchBannedUsers = new Map<string, Set<string>>();
 export const VOTE_KICK_DURATION_MS = 60000;
 export const VOTE_KICK_THRESHOLD = 0.5;
 
+export interface StoredChatMessage {
+	messageId: string;
+	userId: string;
+	username: string;
+	userImage?: string;
+	highlightColor: string;
+	message: string;
+	timestamp: bigint;
+}
+
+export const MAX_CHAT_HISTORY = 50;
+export const matchChatHistory = new Map<string, StoredChatMessage[]>();
+
 export const matchMessageQueues = new Map<string, {
 	processing: boolean;
 	queue: Array<() => Promise<void>>;

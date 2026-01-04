@@ -12,6 +12,8 @@ import {
 	userConnections,
 	activeVoteKicks,
 	matchBannedUsers,
+	matchChatHistory,
+	MAX_CHAT_HISTORY,
 	WS_API_KEY,
 	ZONE_BUFFER,
 	CHAT_RATE_LIMIT_WINDOW,
@@ -24,6 +26,7 @@ import {
 	type MatchConfigCache,
 	type PlayerInfoCache,
 	type ActiveVoteKick,
+	type StoredChatMessage,
 } from "./state";
 import {
 	type WSMessage,
@@ -422,6 +425,26 @@ export async function handleJoinMatch(ws: ServerWebSocket<WebSocketData>, msg: W
 
 	const playerCount = matchPlayers.get(matchId)!.size;
 	ws.send(serializeMessage(createPlayerCountMessage(matchId, playerCount)));
+
+	const chatHistory = matchChatHistory.get(matchId);
+	if (chatHistory && chatHistory.length > 0) {
+		for (const msg of chatHistory) {
+			ws.send(
+				serializeMessage(
+					createChatBroadcast(
+						matchId,
+						msg.messageId,
+						msg.userId,
+						msg.username,
+						msg.userImage,
+						msg.highlightColor,
+						msg.message,
+						msg.timestamp
+					)
+				)
+			);
+		}
+	}
 
 	broadcast(matchId, createPlayerJoinedMessage(matchId, { userId, username }), ws.data.id);
 }
@@ -988,6 +1011,23 @@ export function handleChatMessage(ws: ServerWebSocket<WebSocketData>, msg: WSMes
 	const highlightColor = ws.data.highlightColor ?? "#3b82f6";
 	const timestamp = BigInt(Date.now());
 
+	if (!matchChatHistory.has(matchId)) {
+		matchChatHistory.set(matchId, []);
+	}
+	const history = matchChatHistory.get(matchId)!;
+	history.push({
+		messageId,
+		userId,
+		username,
+		userImage,
+		highlightColor,
+		message: sanitizedMessage,
+		timestamp,
+	});
+	if (history.length > MAX_CHAT_HISTORY) {
+		history.shift();
+	}
+
 	const broadcastMsg = createChatBroadcast(matchId, messageId, userId, username, userImage, highlightColor, sanitizedMessage, timestamp);
 
 	const players = matchPlayers.get(matchId);
@@ -1008,6 +1048,23 @@ function broadcastSystemMessage(matchId: string, message: string): void {
 
 	const messageId = `sys_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 	const timestamp = BigInt(Date.now());
+
+	if (!matchChatHistory.has(matchId)) {
+		matchChatHistory.set(matchId, []);
+	}
+	const history = matchChatHistory.get(matchId)!;
+	history.push({
+		messageId,
+		userId: "system",
+		username: "System",
+		userImage: undefined,
+		highlightColor: "#f59e0b",
+		message,
+		timestamp,
+	});
+	if (history.length > MAX_CHAT_HISTORY) {
+		history.shift();
+	}
 
 	const systemMsg = createChatBroadcast(matchId, messageId, "system", "System", undefined, "#f59e0b", message, timestamp);
 
