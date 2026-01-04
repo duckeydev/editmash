@@ -49,7 +49,7 @@ export const metadata: Metadata = {
 	},
 	icons: {
 		icon: "/favicon.svg",
-		apple: "/favicon.svg",
+		apple: "/apple-touch-icon.png",
 	},
 	openGraph: {
 		type: "website",
@@ -60,6 +60,12 @@ export const metadata: Metadata = {
 		description:
 			"Join timed matches and collaborate with dozens of players to create short, chaotic videos on a shared timeline. No skill required — just fun and creativity.",
 		images: [
+			{
+				url: "/apple-touch-icon.png",
+				width: 512,
+				height: 512,
+				alt: "EditMash Logo",
+			},
 			{
 				url: "/thumbnail.png",
 				width: 1200,
