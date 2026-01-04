@@ -55,6 +55,15 @@ const FFMPEG_THREADS = 2;
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
 
+export function hasContentClips(timeline: TimelineState): boolean {
+	for (const track of timeline.tracks) {
+		if (track.clips.length > 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
 export function calculateContentDuration(timeline: TimelineState): number {
 	let maxEndTime = 0;
 	for (const track of timeline.tracks) {
@@ -504,7 +513,9 @@ export async function renderTimeline(
 	const ffmpegPath = cachedFFmpegPath;
 
 	return new Promise((resolve, reject) => {
-		if (inputFiles.length === 0) {
+		const hasContent = hasContentClips(timeline);
+		
+		if (!hasContent) {
 			const command = ffmpeg();
 			command.setFfmpegPath(ffmpegPath);
 
@@ -525,7 +536,7 @@ export async function renderTimeline(
 					"-c:a aac",
 					"-b:a 192k",
 					"-pix_fmt yuv420p",
-					"-shortest"
+					"-t", String(timeline.duration || 1)
 				])
 				.output(outputPath);
 
@@ -575,7 +586,8 @@ export async function renderTimeline(
 				"-b:a 192k",
 				"-r 30", // 30 fps
 				"-pix_fmt yuv420p",
-				"-t " + renderDuration,
+				"-t",
+				renderDuration.toString(),
 			])
 			.output(outputPath);
 

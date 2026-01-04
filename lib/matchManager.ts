@@ -1,7 +1,7 @@
 import { MatchStatus } from "../app/types/match";
 import { validateMatchConfig } from "./clipConstraints";
 import * as storage from "./storage";
-import { renderTimeline, downloadMediaFiles, cleanupTempFiles } from "./ffmpeg";
+import { renderTimeline, downloadMediaFiles, cleanupTempFiles, hasContentClips } from "./ffmpeg";
 import { uploadToB2 } from "./b2";
 import { getRedis } from "./redis";
 import { notifyWsServer } from "./wsNotify";
@@ -235,7 +235,7 @@ async function triggerRender(matchId: string): Promise<void> {
 	const outputFileName = `render_${matchId}.mp4`;
 	const outputPath = path.join(outputDir, outputFileName);
 
-	if (Object.keys(mediaUrls).length === 0) {
+	if (!hasContentClips(renderableTimeline)) {
 		await renderTimeline(renderableTimeline, new Map(), outputPath);
 
 		const outputBuffer = await fs.readFile(outputPath);
