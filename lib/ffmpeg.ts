@@ -545,6 +545,8 @@ export async function renderTimeline(
 					"-pix_fmt yuv420p",
 					"-movflags",
 					"+faststart",
+					"-max_muxing_queue_size",
+					"1024",
 					"-t",
 					String(timeline.duration || 1),
 				])
@@ -582,7 +584,7 @@ export async function renderTimeline(
 		command.setFfmpegPath(ffmpegPath);
 
 		inputFiles.forEach((file) => {
-			command.input(file);
+			command.input(file).inputOptions(["-err_detect", "ignore_err", "-fflags", "+discardcorrupt+igndts+genpts"]);
 		});
 
 		command
@@ -599,10 +601,14 @@ export async function renderTimeline(
 				FFMPEG_THREADS.toString(),
 				"-c:a aac",
 				"-b:a 192k",
-				"-r 30", // 30 fps
+				"-r 30",
 				"-pix_fmt yuv420p",
 				"-movflags",
 				"+faststart",
+				"-max_muxing_queue_size",
+				"1024",
+				"-strict",
+				"unofficial",
 				"-t",
 				renderDuration.toString(),
 			])

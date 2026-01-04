@@ -4,6 +4,7 @@ import * as storage from "./storage";
 import { renderTimeline, downloadMediaFiles, cleanupTempFiles, hasContentClips } from "./ffmpeg";
 import { uploadToB2 } from "./b2";
 import { getRedis } from "./redis";
+import { setRenderProgress } from "./queue";
 import { notifyWsServer } from "./wsNotify";
 import path from "path";
 import fs from "fs/promises";
@@ -259,8 +260,9 @@ async function triggerRender(matchId: string): Promise<void> {
 
 		await storage.updateMatchRender(matchId, matchId);
 
-		await renderTimeline(renderableTimeline, fileMap, outputPath, (progress) => {
+		await renderTimeline(renderableTimeline, fileMap, outputPath, async (progress) => {
 			console.log(`[Match ${matchId}] Render progress: ${progress.toFixed(1)}%`);
+			await setRenderProgress(matchId, progress);
 		});
 
 		const outputBuffer = await fs.readFile(outputPath);
