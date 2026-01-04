@@ -204,7 +204,20 @@ export default function MediaBrowser() {
 						uploaderName: username ?? undefined,
 					};
 
+				mediaStore.addItem(mediaItem);
 
+				try {
+					const formData = new FormData();
+					formData.append("file", file);
+
+					const xhr = new XMLHttpRequest();
+
+					xhr.upload.addEventListener("progress", (e) => {
+						if (e.lengthComputable) {
+							const progress = Math.round((e.loaded / e.total) * 100);
+							mediaStore.updateItem(itemId, { uploadProgress: progress });
+						}
+					});
 
 						const uploadPromise = new Promise<{ url: string; fileId: string }>((resolve, reject) => {
 							xhr.addEventListener("load", () => {
@@ -282,9 +295,7 @@ export default function MediaBrowser() {
 					uploaderName: username ?? undefined,
 				};
 
-
-					);
-				}
+				mediaStore.addItem(mediaItem);
 
 				// upload to server
 				try {
