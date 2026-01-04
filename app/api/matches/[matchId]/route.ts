@@ -38,6 +38,28 @@ export async function GET(
 			return NextResponse.json({ redirect: `/results/${matchId}` });
 		}
 
+		if (isResultsRequest) {
+			return NextResponse.json({
+				match: {
+					id: match.id,
+					lobbyId: match.lobbyId,
+					lobbyName: match.lobbyName,
+					joinCode: match.joinCode,
+					status: match.status,
+					config: match.config,
+					players: match.players,
+					editCount: match.editCount,
+					renderUrl: match.renderUrl,
+					renderError: match.renderError,
+					startedAt: match.startedAt,
+					endsAt: match.endsAt,
+					completedAt: match.completedAt,
+					createdAt: match.createdAt,
+					updatedAt: match.updatedAt,
+				},
+			});
+		}
+
 		let timeRemaining: number | null = null;
 		if (match.status === "active" && match.endsAt) {
 			timeRemaining = Math.max(0, (match.endsAt.getTime() - Date.now()) / 1000);
