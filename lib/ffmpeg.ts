@@ -530,13 +530,13 @@ export async function renderTimeline(
 					"-map", "[vout]",
 					"-map", "2:a",
 					"-c:v libx264",
-					"-preset medium",
+					"-preset faster",
 					"-crf 23",
 					"-threads", FFMPEG_THREADS.toString(),
 					"-c:a aac",
 					"-b:a 192k",
 					"-pix_fmt yuv420p",
-				  "-movflags", "+faststart",
+				    "-movflags", "+faststart",
 					"-t", String(timeline.duration || 1)
 				])
 				.output(outputPath);
@@ -584,7 +584,7 @@ export async function renderTimeline(
 				"-map",
 				"[aout]",
 				"-c:v libx264",
-				"-preset medium",
+				"-preset faster",
 				"-crf 23",
 				"-threads", FFMPEG_THREADS.toString(),
 				"-c:a aac",
