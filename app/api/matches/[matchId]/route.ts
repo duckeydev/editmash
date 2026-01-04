@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMatchById, getMatchByIdInternal, updateMatchTimeline } from "@/lib/storage";
-import { MatchStateResponse } from "@/app/types/match";
+import { MatchStateResponse, Match } from "@/app/types/match";
 import type { TimelineState } from "@/app/types/timeline";
 import { secureCompare } from "@/lib/security";
 
@@ -15,7 +15,7 @@ interface RouteParams {
 export async function GET(
 	request: NextRequest,
 	{ params }: RouteParams
-): Promise<NextResponse<MatchStateResponse | { error: string } | { redirect: string }>> {
+): Promise<NextResponse<MatchStateResponse | { match: Partial<Match> } | { error: string } | { redirect: string }>> {
 	try {
 		const { matchId } = await params;
 
