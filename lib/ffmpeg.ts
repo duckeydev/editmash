@@ -494,7 +494,7 @@ export async function renderTimeline(
 		}
 	});
 
-	const watermarkPath = path.join(process.cwd(), "public", "static", "watermark.png");
+	const watermarkPath = path.join(process.cwd(), "public", "watermark.png");
 	const watermarkInputIndex = inputIndex;
 	inputFiles.push(watermarkPath);
 	console.log(`[FFmpeg] Watermark input ${watermarkInputIndex}: ${watermarkPath}`);
