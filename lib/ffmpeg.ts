@@ -536,16 +536,7 @@ export async function renderTimeline(
 					"-c:a aac",
 					"-b:a 192k",
 					"-pix_fmt yuv420p",
-					"-t", String(timeline.duration || 1)
-				])
-				.output(outputPath);
-
-			command.on("progress", (progress) => {
-				if (onProgress && progress.percent) {
-					onProgress(Math.min(99, Math.max(0, progress.percent)));
-				}
-			});
-
+				"-movflags", "+faststart",
 			command.on("error", (err, stdout, stderr) => {
 				console.error(`[FFmpeg] Error: ${err.message}`);
 				console.error(`[FFmpeg] stderr: ${stderr}`);
@@ -586,6 +577,7 @@ export async function renderTimeline(
 				"-b:a 192k",
 				"-r 30", // 30 fps
 				"-pix_fmt yuv420p",
+				"-movflags", "+faststart",
 				"-t",
 				renderDuration.toString(),
 			])

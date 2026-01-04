@@ -174,13 +174,6 @@ export async function GET() {
 				matchId: l.matchId,
 				likedAt: l.createdAt,
 			})),
-			summary: {
-				totalLobbiesJoined: lobbyParticipation.length,
-				totalMatchesPlayed: matchParticipation.length,
-				totalMediaUploaded: uploadedMedia.length,
-				totalEditsPerformed: editOperations.length,
-				totalVideosLiked: likes.length,
-			},
 		};
 
 		const jsonString = JSON.stringify(exportData, null, 2);
