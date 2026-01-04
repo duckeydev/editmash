@@ -540,9 +540,13 @@ export async function renderTimeline(
 				])
 				.output(outputPath);
 
+			const totalDuration = timeline.duration || 1;
 			command.on("progress", (progress) => {
-				if (onProgress && progress.percent) {
-					onProgress(Math.min(99, Math.max(0, progress.percent)));
+				if (onProgress && progress.timemark) {
+					const parts = progress.timemark.split(":").map(parseFloat);
+					const currentSeconds = (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+					const percent = (currentSeconds / totalDuration) * 100;
+					onProgress(Math.min(99, Math.max(0, percent)));
 				}
 			});
 
@@ -592,9 +596,11 @@ export async function renderTimeline(
 			.output(outputPath);
 
 		command.on("progress", (progress) => {
-			if (onProgress && progress.percent) {
-				const progressValue = Math.min(99, Math.max(0, progress.percent));
-				onProgress(progressValue);
+			if (onProgress && progress.timemark) {
+				const parts = progress.timemark.split(":").map(parseFloat);
+				const currentSeconds = (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+				const percent = (currentSeconds / renderDuration) * 100;
+				onProgress(Math.min(99, Math.max(0, percent)));
 			}
 		});
 
