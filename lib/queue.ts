@@ -145,8 +145,7 @@ export async function getQueuePosition(jobId: string): Promise<number | null> {
 	const queueIndex = queue.indexOf(jobId);
 	if (queueIndex === -1) return null;
 
-	const activeCount = await getActiveSlotCount();
-	return queueIndex + activeCount + 1;
+	return queueIndex + 1;
 }
 
 export async function createRenderJob(job: Omit<RenderJob, "id" | "status" | "progress" | "createdAt">): Promise<RenderJob> {
