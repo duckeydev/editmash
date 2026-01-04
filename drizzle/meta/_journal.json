@@ -71,6 +71,13 @@
       "when": 1767460309256,
       "tag": "0009_empty_nightshade",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1767541381526,
+      "tag": "0010_military_joshua_kane",
+      "breakpoints": true
     }
   ]
 }
